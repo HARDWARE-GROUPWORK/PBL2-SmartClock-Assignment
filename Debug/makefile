@@ -37,34 +37,34 @@ $(wildcard ../makefile.init) \
 $(wildcard ../makefile.targets) \
 
 
-BUILD_ARTIFACT_NAME := PBL1_Monitor
+BUILD_ARTIFACT_NAME := PBL2_SmartClock
 BUILD_ARTIFACT_EXTENSION := elf
 BUILD_ARTIFACT_PREFIX :=
 BUILD_ARTIFACT := $(BUILD_ARTIFACT_PREFIX)$(BUILD_ARTIFACT_NAME)$(if $(BUILD_ARTIFACT_EXTENSION),.$(BUILD_ARTIFACT_EXTENSION),)
 
 # Add inputs and outputs from these tool invocations to the build variables 
 EXECUTABLES += \
-PBL1_Monitor.elf \
+PBL2_SmartClock.elf \
 
 SIZE_OUTPUT += \
 default.size.stdout \
 
 OBJDUMP_LIST += \
-PBL1_Monitor.list \
+PBL2_SmartClock.list \
 
 OBJCOPY_BIN += \
-PBL1_Monitor.bin \
+PBL2_SmartClock.bin \
 
 
 # All Target
 all: main-build
 
 # Main-build Target
-main-build: PBL1_Monitor.elf secondary-outputs
+main-build: PBL2_SmartClock.elf secondary-outputs
 
 # Tool invocations
-PBL1_Monitor.elf: $(OBJS) $(USER_OBJS) C:\Users\ASUS\STM32CubeIDE\MAD_Lab_1.7.0\PBL1_Monitor\STM32F767ZITX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "PBL1_Monitor.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m7 -T"C:\Users\ASUS\STM32CubeIDE\MAD_Lab_1.7.0\PBL1_Monitor\STM32F767ZITX_FLASH.ld" --specs=nosys.specs -Wl,-Map="PBL1_Monitor.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv5-d16 -mfloat-abi=hard -mthumb -u _printf_float -Wl,--start-group -lc -lm -Wl,--end-group
+PBL2_SmartClock.elf: $(OBJS) $(USER_OBJS) C:\Users\ASUS\STM32CubeIDE\MAD_Lab_1.7.0\PBL2_SmartClock\STM32F767ZITX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-gcc -o "PBL2_SmartClock.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m7 -T"C:\Users\ASUS\STM32CubeIDE\MAD_Lab_1.7.0\PBL2_SmartClock\STM32F767ZITX_FLASH.ld" --specs=nosys.specs -Wl,-Map="PBL2_SmartClock.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv5-d16 -mfloat-abi=hard -mthumb -u _printf_float -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 
@@ -73,19 +73,19 @@ default.size.stdout: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
 	@echo 'Finished building: $@'
 	@echo ' '
 
-PBL1_Monitor.list: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-objdump -h -S $(EXECUTABLES) > "PBL1_Monitor.list"
+PBL2_SmartClock.list: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-objdump -h -S $(EXECUTABLES) > "PBL2_SmartClock.list"
 	@echo 'Finished building: $@'
 	@echo ' '
 
-PBL1_Monitor.bin: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-objcopy  -O binary $(EXECUTABLES) "PBL1_Monitor.bin"
+PBL2_SmartClock.bin: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-objcopy  -O binary $(EXECUTABLES) "PBL2_SmartClock.bin"
 	@echo 'Finished building: $@'
 	@echo ' '
 
 # Other Targets
 clean:
-	-$(RM) $(SIZE_OUTPUT)$(OBJDUMP_LIST)$(EXECUTABLES)$(OBJS)$(S_DEPS)$(S_UPPER_DEPS)$(C_DEPS)$(OBJCOPY_BIN) PBL1_Monitor.elf
+	-$(RM) $(SIZE_OUTPUT)$(OBJDUMP_LIST)$(EXECUTABLES)$(OBJS)$(S_DEPS)$(S_UPPER_DEPS)$(C_DEPS)$(OBJCOPY_BIN) PBL2_SmartClock.elf
 	-@echo ' '
 
 secondary-outputs: $(SIZE_OUTPUT) $(OBJDUMP_LIST) $(OBJCOPY_BIN)
