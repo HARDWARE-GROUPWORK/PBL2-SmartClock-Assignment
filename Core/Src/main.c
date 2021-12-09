@@ -60,6 +60,24 @@
 
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
+  uint8_t start[]   =   { 0x00, 0x00, 0x7E, 0x00, 0x00, 0x02, 0x01, 0x03, 0xF9, 0x7E };
+    uint8_t read[]    =   { 0x00, 0x00, 0x7E, 0x00, 0x03, 0x00, 0xFC, 0x7E };
+    uint8_t stop[]    =   { 0x00, 0x00, 0x7E, 0x00, 0x01, 0x00, 0xFE, 0x7E };
+    uint8_t fan[]     =   { 0x00, 0x00, 0x7E, 0x00, 0x56, 0x00, 0xA9, 0x7E};
+    uint8_t reset[]   =   { 0x00, 0x00, 0x7E, 0x00, 0xD3, 0x00, 0x2C, 0x7E };
+    uint8_t ProductName[]    =   { 0x00, 0x00, 0x7E, 0x00, 0xD0, 0x01, 0x01, 0x2D, 0x7E };
+    uint8_t ArticleCode[]    =   { 0x00, 0x00, 0x7E, 0x00, 0xD0, 0x01, 0x02, 0x2C, 0x7E };
+    uint8_t SerialNumber[]   =   { 0x00, 0x00, 0x7E, 0x00, 0xD0, 0x01, 0x03, 0x2B, 0x7E };
+    uint8_t data[70];
+    uint8_t command;
+    uint8_t errorcode;
+    uint8_t length;
+    uint8_t state;
+    uint8_t checksum;
+    uint32_t concatenateHex[10];
+    float actualValue[10];
+
+
 int numberOfRecord = 1;
 int lightPercent = 100;
 float temp = 99.9;
@@ -374,7 +392,12 @@ void assignmentTwo(){
 //	sprintf(Temp_Buffer_text, "AA");
 //	HAL_UART_Transmit(&huart1, (uint8_t*) Temp_Buffer_text, strlen(Temp_Buffer_text), 1000);
 
+}
 
+void println(char input[] ){
+		  char stringBuffer[30];
+		  sprintf(stringBuffer, "%s\r\n" , input);
+		  HAL_UART_Transmit(&huart3, (uint8_t*) stringBuffer, strlen(stringBuffer), 200);
 }
 
 /* USER CODE END 0 */
@@ -421,9 +444,6 @@ int main(void)
   MX_TIM3_Init();
   MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
-  sprintf(str, "\n\rAM2320 I2C DEMO Starting . . .\n\r");
-
-  HAL_UART_Transmit(&huart3, (uint8_t*) str, strlen(str),200);
 
   //Temp but not has code in here yet
   cmdBuffer[0] = 0x03;
@@ -442,6 +462,89 @@ int main(void)
   //Reset Screen
   setHorizontalScreen(BLACK);
 
+  // Setup PM Sensor
+  for (int i = 0; i < sizeof(data); i++) {
+  	data[i] = 0x00;
+  }
+  for (int i = 0; i < sizeof(concatenateHex); i++) {
+  	concatenateHex[i] = 0;
+   }
+  for (int i = 0; i < sizeof(actualValue); i++) {
+  	actualValue[i] = 0;
+  }
+
+  typedef union {
+
+      float f;
+      struct
+      {
+
+          // Order is important.
+          // Here the members of the union data structure
+          // use the same memory (32 bits).
+          // The ordering is taken
+          // from the LSB to the MSB.
+
+          unsigned int mantissa : 23;
+          unsigned int exponent : 8;
+          unsigned int sign : 1;
+
+      } raw;
+  } myfloat;
+
+  // Function to convert a binary array
+  // to the corresponding integer
+  unsigned int convertToInt(int* arr, int low, int high)
+  {
+      unsigned f = 0, i;
+      for (i = high; i >= low; i--) {
+          f = f + arr[i] * pow(2, high - i);
+      }
+      return f;
+  }
+
+    void readData(){
+    while(__HAL_UART_GET_FLAG(&huart1,UART_FLAG_TC) == RESET){}
+    HAL_UART_Transmit(&huart1, (uint8_t *)read, sizeof(read), 1000);
+    while(__HAL_UART_GET_FLAG(&huart1,UART_FLAG_TC) == RESET){}
+    HAL_UART_Receive(&huart1,(uint8_t *)data , sizeof(data) , 1000);
+    if(data[0] == 0x7E && data[1] == 0x00){
+            command = data[2];
+            errorcode = data[3];
+            length = data[4];
+            state = data[5];
+            for(uint8_t i = sizeof(data) ; i > 0 ; i--){
+                if(data[i] == 0x7E){
+                    data[i - 1] = checksum;
+                }
+            }
+            while(__HAL_UART_GET_FLAG(&huart3,UART_FLAG_TC) == RESET){}
+            HAL_UART_Transmit(&huart3, (uint8_t *)data, sizeof(data), 1000);
+            for (int i = 0; i < 10; i++) {
+            	concatenateHex[i] = ((data[4 * i  + 5])) + ((data[(4 * i) + 1  + 5])<<8) + ((data[(4 * i) + 2  + 5])<<16) + (data[(4 * i) + 3 + 5]<<24);
+            }
+            while(__HAL_UART_GET_FLAG(&huart3,UART_FLAG_TC) == RESET){}
+            HAL_UART_Transmit(&huart3, (uint32_t *)concatenateHex, sizeof(concatenateHex), 1000);
+            for (int i = 0; i < sizeof(actualValue); i++) {
+            	actualValue[i] = *((float*)&concatenateHex[i]);
+            }
+        }
+
+    }
+    // start frame is 0x7E and address device is 0x00
+    // finding checksum
+
+  while(__HAL_UART_GET_FLAG(&huart1,UART_FLAG_TC) == RESET){}
+  HAL_UART_Transmit(&huart1, (uint8_t *)start, sizeof(start), 1000);
+  while(__HAL_UART_GET_FLAG(&huart1,UART_FLAG_TC) == RESET){}
+  HAL_UART_Receive(&huart1,(uint8_t *)data , sizeof(data) , 1000);
+//  while(__HAL_UART_GET_FLAG(&huart3,UART_FLAG_TC) == RESET){}
+//  HAL_UART_Transmit(&huart3, (uint8_t *)data, sizeof(data), 1000);
+
+  HAL_Delay(1000);
+  readData();
+  HAL_Delay(1000);
+
 
   /* USER CODE END 2 */
 
@@ -456,6 +559,10 @@ int main(void)
 
 
 	  // REAL CODE BEGIN
+
+	  // PM SENSOR CODE BEGIN
+
+	  // PM SENSOR CODE END
 
 
 //	  char stringBuffer[30];

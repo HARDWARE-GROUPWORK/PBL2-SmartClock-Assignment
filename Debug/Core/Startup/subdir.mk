@@ -16,5 +16,12 @@ S_DEPS += \
 
 # Each subdirectory must supply rules for building sources it contributes
 Core/Startup/%.o: ../Core/Startup/%.s Core/Startup/subdir.mk
-	arm-none-eabi-gcc -mcpu=cortex-m7 -g3 -DDEBUG -c -I"C:/Users/ASUS/STM32CubeIDE/MAD_Lab_1.7.0/PBL2_SmartClock/Drivers/ILI9341" -I"C:/Users/ASUS/STM32CubeIDE/MAD_Lab_1.7.0/PBL2_SmartClock/Drivers/STM32-AM2320-master" -x assembler-with-cpp -MMD -MP -MF"$(@:%.o=%.d)" -MT"$@" --specs=nano.specs -mfpu=fpv5-d16 -mfloat-abi=hard -mthumb -o "$@" "$<"
+	arm-none-eabi-gcc -mcpu=cortex-m7 -g3 -DDEBUG -c -I"C:/Users/Tree/Desktop/PBL/PBL2_SmartClock/Drivers/ILI9341" -I"C:/Users/Tree/Desktop/PBL/PBL2_SmartClock/Drivers/STM32-AM2320-master" -x assembler-with-cpp -MMD -MP -MF"$(@:%.o=%.d)" -MT"$@" --specs=nano.specs -mfpu=fpv5-d16 -mfloat-abi=hard -mthumb -o "$@" "$<"
+
+clean: clean-Core-2f-Startup
+
+clean-Core-2f-Startup:
+	-$(RM) ./Core/Startup/startup_stm32f767zitx.d ./Core/Startup/startup_stm32f767zitx.o
+
+.PHONY: clean-Core-2f-Startup
 
