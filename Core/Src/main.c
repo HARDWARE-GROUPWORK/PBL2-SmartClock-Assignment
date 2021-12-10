@@ -503,11 +503,23 @@ int main(void)
       return f;
   }
 
+  float sensirion_bytes_to_float(const uint32_t bytes) {
+      union {
+          uint32_t u32_value;
+          float float32;
+      } tmp;
+
+      tmp.u32_value = bytes;
+      return tmp.float32;
+  }
+
     void readData(){
     while(__HAL_UART_GET_FLAG(&huart1,UART_FLAG_TC) == RESET){}
     HAL_UART_Transmit(&huart1, (uint8_t *)read, sizeof(read), 1000);
     while(__HAL_UART_GET_FLAG(&huart1,UART_FLAG_TC) == RESET){}
     HAL_UART_Receive(&huart1,(uint8_t *)data , sizeof(data) , 1000);
+	  while(__HAL_UART_GET_FLAG(&huart3,UART_FLAG_TC) == RESET){}
+	  HAL_UART_Transmit(&huart3, (uint8_t *)data, sizeof(data), 1000);
     if(data[0] == 0x7E && data[1] == 0x00){
             command = data[2];
             errorcode = data[3];
@@ -518,18 +530,19 @@ int main(void)
                     data[i - 1] = checksum;
                 }
             }
-            while(__HAL_UART_GET_FLAG(&huart3,UART_FLAG_TC) == RESET){}
-            HAL_UART_Transmit(&huart3, (uint8_t *)data, sizeof(data), 1000);
+
             for (int i = 0; i < 10; i++) {
-            	concatenateHex[i] = ((data[4 * i  + 5])) + ((data[(4 * i) + 1  + 5])<<8) + ((data[(4 * i) + 2  + 5])<<16) + (data[(4 * i) + 3 + 5]<<24);
+            	concatenateHex[i] = ((data[4 * i  + 5])<<24) + ((data[(4 * i) + 1  + 5])<<16) + ((data[(4 * i) + 2  + 5])<<8) + (data[(4 * i) + 3 + 5]);
             }
             while(__HAL_UART_GET_FLAG(&huart3,UART_FLAG_TC) == RESET){}
             HAL_UART_Transmit(&huart3, (uint32_t *)concatenateHex, sizeof(concatenateHex), 1000);
-            for (int i = 0; i < sizeof(actualValue); i++) {
-            	actualValue[i] = *((float*)&concatenateHex[i]);
+            for (int i = 0; i < 10; i++) {
+            	actualValue[i] = sensirion_bytes_to_float(concatenateHex[i]);
+            	char stringBuffer[30];
+            	sprintf(stringBuffer, "%.4f\r\n" , actualValue[i]);
+            	HAL_UART_Transmit(&huart3, (uint8_t*) stringBuffer, strlen(stringBuffer), 200);
             }
         }
-
     }
     // start frame is 0x7E and address device is 0x00
     // finding checksum
