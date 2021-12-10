@@ -14,7 +14,6 @@ RM := rm -rf
 -include Drivers/ILI9341/subdir.mk
 -include Core/Startup/subdir.mk
 -include Core/Src/subdir.mk
--include subdir.mk
 -include objects.mk
 
 ifneq ($(MAKECMDGOALS),clean)
@@ -63,8 +62,8 @@ all: main-build
 main-build: PBL2_SmartClock.elf secondary-outputs
 
 # Tool invocations
-PBL2_SmartClock.elf: $(OBJS) $(USER_OBJS) C:\Users\ASUS\STM32CubeIDE\MAD_Lab_1.7.0\PBL2_SmartClock\STM32F767ZITX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "PBL2_SmartClock.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m7 -T"C:\Users\ASUS\STM32CubeIDE\MAD_Lab_1.7.0\PBL2_SmartClock\STM32F767ZITX_FLASH.ld" --specs=nosys.specs -Wl,-Map="PBL2_SmartClock.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv5-d16 -mfloat-abi=hard -mthumb -u _printf_float -Wl,--start-group -lc -lm -Wl,--end-group
+PBL2_SmartClock.elf: $(OBJS) $(USER_OBJS) C:\Users\Tree\Desktop\PBL\PBL2_SmartClock\STM32F767ZITX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-gcc -o "PBL2_SmartClock.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m7 -T"C:\Users\Tree\Desktop\PBL\PBL2_SmartClock\STM32F767ZITX_FLASH.ld" --specs=nosys.specs -Wl,-Map="PBL2_SmartClock.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv5-d16 -mfloat-abi=hard -mthumb -u _printf_float -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 
@@ -85,7 +84,7 @@ PBL2_SmartClock.bin: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
 
 # Other Targets
 clean:
-	-$(RM) $(SIZE_OUTPUT)$(OBJDUMP_LIST)$(EXECUTABLES)$(OBJS)$(S_DEPS)$(S_UPPER_DEPS)$(C_DEPS)$(OBJCOPY_BIN) PBL2_SmartClock.elf
+	-$(RM) PBL2_SmartClock.bin PBL2_SmartClock.elf PBL2_SmartClock.list default.size.stdout
 	-@echo ' '
 
 secondary-outputs: $(SIZE_OUTPUT) $(OBJDUMP_LIST) $(OBJCOPY_BIN)
@@ -97,6 +96,6 @@ fail-specified-linker-script-missing:
 warn-no-linker-script-specified:
 	@echo 'Warning: No linker script specified. Check the linker settings in the build configuration.'
 
-.PHONY: all clean dependents fail-specified-linker-script-missing warn-no-linker-script-specified
+.PHONY: all clean dependents main-build fail-specified-linker-script-missing warn-no-linker-script-specified
 
 -include ../makefile.targets
