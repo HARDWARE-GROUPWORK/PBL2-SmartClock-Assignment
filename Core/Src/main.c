@@ -701,9 +701,9 @@ void notifyPm(){
 
 }
 
-int32_t stopWatchHour = 1;
-int32_t stopWatchMinute = 59;
-int32_t stopWatchSecond = 58;
+int32_t stopWatchHour = 0;
+int32_t stopWatchMinute = 0;
+int32_t stopWatchSecond = 0;
 int32_t stopWatchMillisecond = 0;
 int32_t prevStopWatchHour = -1;
 int32_t prevStopWatchMinute = -1;
@@ -813,13 +813,24 @@ void stopWatchScreen(){
 //	sprintf(hexString,"%d %d\r\n",prevStopWatchHour,stopWatchHour);
 //	HAL_UART_Transmit(&huart3, (uint8_t*) hexString, strlen(hexString), 1000);
 
+}
 
-	//		char hexString[30];
-	//		sprintf(hexString,"%d\r\n",millisecondStopWatch);
-	//		HAL_UART_Transmit(&huart3, (uint8_t*) hexString, strlen(hexString), 1000);
-
-
-
+void editScreen(){
+	if(modeEdit == 1){
+		editYearScreen();
+	}else if (modeEdit == 2){
+		editMonthScreen();
+	}else if (modeEdit == 3){
+		editDateScreen();
+	}else if (modeEdit == 4){
+		editDayScreen();
+	}else if (modeEdit == 5){
+		editHourScreen();
+	}else if (modeEdit == 6){
+		editMinuteScreen();
+	}else if (modeEdit == 7){
+		editSecondScreen();
+	}
 }
 
 char str[50];
@@ -860,52 +871,6 @@ void tempMonitor(){
 		uint16_t humidity = (dataBuffer[2] << 8) + dataBuffer[3];
 		humid = humidity / 10.0;
 	}
-}
-
-
-void assignmentTwo(){
-
-	//calculationClock();
-	//checkResetData();
-	tempMonitor();
-	notifyPm();
-
-
-	if (mode == 0){
-		topBarScreen();
-		displayClockScreen();
-		bottomBarScreenUpdate();
-	}
-	else if (mode == 100){ // Adjust modeEdit 1-year, 2-month, 3-date, 4-day, 5-hour, 6-minute, 7-second
-
-
-		if(modeEdit == 1){
-			editYearScreen();
-		}
-		else if (modeEdit == 2){
-			editMonthScreen();
-		}
-		else if (modeEdit == 3){
-			editDateScreen();
-		}
-		else if (modeEdit == 4){
-			editDayScreen();
-		}
-		else if (modeEdit == 5){
-			editHourScreen();
-		}
-		else if (modeEdit == 6){
-			editMinuteScreen();
-		}
-		else if (modeEdit == 7){
-			editSecondScreen();
-		}
-
-	}
-
-	//Test huart1 UART PB6 TX - PB15 RX
-	//	sprintf(Temp_Buffer_text, "AA");
-	//	HAL_UART_Transmit(&huart1, (uint8_t*) Temp_Buffer_text, strlen(Temp_Buffer_text), 1000);
 }
 
 
@@ -974,7 +939,7 @@ int main(void)
 	readData();
 
 	// Setup PM Sensor
-	uint8_t *respondStart;
+	uint8_t* respondStart;
 	respondStart = wake_sensirion();
 	sent_string_to_mcu("STA");
 
@@ -990,10 +955,6 @@ int main(void)
     /* USER CODE BEGIN 3 */
 
 		// REAL CODE BEGIN
-
-		//	  char stringBuffer[30];
-		//	  sprintf(stringBuffer, "%d\r\n" , millisecond);
-		//	  HAL_UART_Transmit(&huart3, (uint8_t*) stringBuffer, strlen(stringBuffer), 200);
 
 		calculationClock();
 		checkResetData();
@@ -1014,15 +975,26 @@ int main(void)
 		}
 
 		if(mode == 0){
-			if (halfsecond == 1){	// interupt every 500 ms
+			if (halfsecond == 1){	// render every 500 ms
 				halfsecondState = !halfsecondState; // check appearing of colon (:) in clock
-				//displayClock(millisecond);
 				halfsecond = 0;
-				assignmentTwo();
+
+				tempMonitor(); // read every 500 ms
+				notifyPm();
+
+				topBarScreen();
+				displayClockScreen();
+				bottomBarScreenUpdate();
 			}
 		}else if(mode == 1){
-			//Dont forget save EEPROM Here (or all in main)
 			stopWatchScreen();
+		}else if (mode == 100){ // Adjust modeEdit 1-year, 2-month, 3-date, 4-day, 5-hour, 6-minute, 7-second
+
+			if(halfsecond == 1){ // render every 500 ms
+				halfsecondState = !halfsecondState; // check appearing of colon (:) in clock
+				halfsecond = 0;
+				editScreen();
+			}
 		}
 
 
