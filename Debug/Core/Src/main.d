@@ -39,7 +39,7 @@ Core/Src/main.o: ../Core/Src/main.c ../Core/Inc/main.h \
  C:/Users/ASUS/STM32CubeIDE/MAD_Lab_1.7.0/PBL2_SmartClock/Drivers/ILI9341/ILI9341_GFX.h \
  C:/Users/ASUS/STM32CubeIDE/MAD_Lab_1.7.0/PBL2_SmartClock/Drivers/ILI9341/snow_tiger.h \
  C:/Users/ASUS/STM32CubeIDE/MAD_Lab_1.7.0/PBL2_SmartClock/Drivers/STM32-AM2320-master/am2320.h \
- ../Core/Inc/sps30.h ../Core/Inc/EEPROM.h
+ ../Core/Inc/sps30.h ../Core/Inc/uart_to_mcu.h ../Core/Inc/EEPROM.h
 
 ../Core/Inc/main.h:
 
@@ -134,5 +134,7 @@ C:/Users/ASUS/STM32CubeIDE/MAD_Lab_1.7.0/PBL2_SmartClock/Drivers/ILI9341/snow_ti
 C:/Users/ASUS/STM32CubeIDE/MAD_Lab_1.7.0/PBL2_SmartClock/Drivers/STM32-AM2320-master/am2320.h:
 
 ../Core/Inc/sps30.h:
+
+../Core/Inc/uart_to_mcu.h:
 
 ../Core/Inc/EEPROM.h:

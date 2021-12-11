@@ -37,6 +37,7 @@
 #include "am2320.h"
 #include "stdbool.h"
 #include "sps30.h"
+#include "uart_to_mcu.h"
 
 #include "EEPROM.h"
 /* USER CODE END Includes */
@@ -64,6 +65,10 @@
 int lightPercent = 100;
 float temp = 99.9;
 float humid = 99.9;
+float prevTemp = 0.0;
+float prevHumid = 0.0;
+float pmTwoPointFive = 4.0; // ug/m^3
+float prevPmTwoPointFive = 0.0;
 
 //Clock Timer
 uint32_t millisecond = 0;
@@ -115,6 +120,8 @@ bool userResetButton = false;
 uint64_t secondCounter = 0;
 uint64_t prevSecondCounter = 0;
 uint64_t millisecondHAL = 0;
+
+uint64_t pmPrevMillisecondHAL = 0;
 
 //Date Clock
 int8_t date = 13; // 1-31
@@ -216,6 +223,10 @@ void setDayX(uint8_t num){
 void calculationClock(uint32_t ms){
 
 	millisecondHAL = HAL_GetTick();
+
+	char hexString[30];
+	sprintf(hexString,"%d\r\n",millisecond);
+	HAL_UART_Transmit(&huart3, (uint8_t*) hexString, strlen(hexString), 1000);
 
 	//Normal Clock
 	if (millisecond >= 1000){
@@ -332,11 +343,11 @@ void dayScreen(bool status, bool isEdit){
 	if (prevDayIndex != dayIndex || isEdit == true){
 		if (status == true){
 			sprintf(Temp_Buffer_text, "%s", dayText[dayIndex]);
-			ILI9341_Draw_Text(Temp_Buffer_text, maxWidth * 0.1 + offsetWidthDate*0, maxHeight * 0.1, WHITE, 2, BLACK);
+			ILI9341_Draw_Text(Temp_Buffer_text, offsetWidth + offsetWidthDate*0 -5, maxHeight * 0.1, WHITE, 2, BLACK);
 		}
 		else{
 			sprintf(Temp_Buffer_text, "   ");
-			ILI9341_Draw_Text(Temp_Buffer_text, maxWidth * 0.1 + offsetWidthDate*0, maxHeight * 0.1, WHITE, 2, BLACK);
+			ILI9341_Draw_Text(Temp_Buffer_text, offsetWidth + offsetWidthDate*0 -5, maxHeight * 0.1, WHITE, 2, BLACK);
 		}
 		prevDayIndex = dayIndex;
 	}
@@ -345,11 +356,11 @@ void dateScreen(bool status, bool isEdit){
 	if (prevDate != date || isEdit == true){
 		if (status == true){
 			sprintf(Temp_Buffer_text, "%02d", (int)date);
-			ILI9341_Draw_Text(Temp_Buffer_text, maxWidth * 0.1 + offsetWidthDate*1+8, maxHeight * 0.1, WHITE, 2, BLACK);
+			ILI9341_Draw_Text(Temp_Buffer_text, offsetWidth + offsetWidthDate*1+8 -5, maxHeight * 0.1, WHITE, 2, BLACK);
 		}
 		else{
 			sprintf(Temp_Buffer_text, "  ");
-			ILI9341_Draw_Text(Temp_Buffer_text, maxWidth * 0.1 + offsetWidthDate*1+8, maxHeight * 0.1, WHITE, 2, BLACK);
+			ILI9341_Draw_Text(Temp_Buffer_text, offsetWidth + offsetWidthDate*1+8 -5, maxHeight * 0.1, WHITE, 2, BLACK);
 		}
 		prevDate = date;
 	}
@@ -358,11 +369,11 @@ void monthScreen(bool status, bool isEdit){
 	if (prevMonthIndex != monthIndex || isEdit == true){
 		if (status == true){
 			sprintf(Temp_Buffer_text, "%s", monthText[monthIndex]);
-			ILI9341_Draw_Text(Temp_Buffer_text, maxWidth * 0.1 + offsetWidthDate*2, maxHeight * 0.1, WHITE, 2, BLACK);
+			ILI9341_Draw_Text(Temp_Buffer_text, offsetWidth + offsetWidthDate*2 -5, maxHeight * 0.1, WHITE, 2, BLACK);
 		}
 		else{
 			sprintf(Temp_Buffer_text, "   ");
-			ILI9341_Draw_Text(Temp_Buffer_text, maxWidth * 0.1 + offsetWidthDate*2, maxHeight * 0.1, WHITE, 2, BLACK);
+			ILI9341_Draw_Text(Temp_Buffer_text, offsetWidth + offsetWidthDate*2 -5, maxHeight * 0.1, WHITE, 2, BLACK);
 		}
 		prevMonthIndex = monthIndex;
 	}
@@ -371,11 +382,11 @@ void yearScreen(bool status, bool isEdit){
 	if (prevYear != year || isEdit == true){
 		if (status == true){
 			sprintf(Temp_Buffer_text, "%04d", (int)year);
-			ILI9341_Draw_Text(Temp_Buffer_text, maxWidth * 0.1 + offsetWidthDate*3+8, maxHeight * 0.1, WHITE, 2, BLACK);
+			ILI9341_Draw_Text(Temp_Buffer_text, offsetWidth + offsetWidthDate*3+8 -5, maxHeight * 0.1, WHITE, 2, BLACK);
 		}
 		else{
 			sprintf(Temp_Buffer_text, "    ");
-			ILI9341_Draw_Text(Temp_Buffer_text, maxWidth * 0.1 + offsetWidthDate*3+8, maxHeight * 0.1, WHITE, 2, BLACK);
+			ILI9341_Draw_Text(Temp_Buffer_text, offsetWidth + offsetWidthDate*3+8 -5, maxHeight * 0.1, WHITE, 2, BLACK);
 		}
 		prevYear = year;
 	}
@@ -391,11 +402,17 @@ void displayDateScreen(){
 
 //Top Screen
 void topBarScreen(){
-
 	displayDateScreen();
 
-	sprintf(Temp_Buffer_text, "ON");
-	ILI9341_Draw_Text(Temp_Buffer_text, maxWidth * 0.9 + offsetWidth - 5, maxHeight * 0.1, BLACK, 2, RED);
+	//Alarm
+	ILI9341_Draw_Filled_Circle(maxWidth * 0.92 + offsetWidth, maxHeight * 0.13, 6, YELLOW);
+	ILI9341_Draw_Filled_Circle(maxWidth * 0.92 + offsetWidth, maxHeight * 0.16-1, 3, YELLOW);
+	ILI9341_Draw_Filled_Rectangle_Coord(maxWidth*0.9 +offsetWidth-6, maxHeight * 0.1 +9, maxWidth*0.9 +offsetWidth+14, maxHeight * 0.1 +13, YELLOW);
+	ILI9341_Draw_Hollow_Rectangle_Coord(maxWidth*0.9 +offsetWidth-6, maxHeight * 0.1 +9, maxWidth*0.9 +offsetWidth+14, maxHeight * 0.1 +13, BLACK);
+
+
+//	sprintf(Temp_Buffer_text, "24:00");
+//	ILI9341_Draw_Text(Temp_Buffer_text, maxWidth * 0.7 + offsetWidth, maxHeight * 0.1, WHITE, 2, BLACK);
 }
 
 //Reset Prev Values
@@ -429,11 +446,11 @@ void hourScreen(bool status, bool isEdit){
 void colonScreen(bool status){
 	if (status == true){
 		sprintf(Temp_Buffer_text, ":");
-		ILI9341_Draw_Text(Temp_Buffer_text, maxWidth * 0 + offsetWidth + 75, maxHeight * 0.35, WHITE, 4, BLACK);
+		ILI9341_Draw_Text(Temp_Buffer_text, maxWidth * 0 + offsetWidth + 73, maxHeight * 0.35, WHITE, 4, BLACK);
 	}
 	else{
 		sprintf(Temp_Buffer_text, " ");
-		ILI9341_Draw_Text(Temp_Buffer_text, maxWidth * 0 + offsetWidth + 75, maxHeight * 0.35, WHITE, 4, BLACK);
+		ILI9341_Draw_Text(Temp_Buffer_text, maxWidth * 0 + offsetWidth + 73, maxHeight * 0.35, WHITE, 4, BLACK);
 	}
 }
 void minuteScreen(bool status, bool isEdit){
@@ -441,11 +458,11 @@ void minuteScreen(bool status, bool isEdit){
 		if (status == true){
 
 			sprintf(Temp_Buffer_text, "%02d", (int)minuteNum);
-			ILI9341_Draw_Text(Temp_Buffer_text, maxWidth * 0 + offsetWidth + 100, maxHeight * 0.3, WHITE, 6, BLACK);
+			ILI9341_Draw_Text(Temp_Buffer_text, maxWidth * 0 + offsetWidth + 97, maxHeight * 0.3, WHITE, 6, BLACK);
 		}
 		else{
 			sprintf(Temp_Buffer_text, "  ");
-			ILI9341_Draw_Text(Temp_Buffer_text, maxWidth * 0 + offsetWidth + 100, maxHeight * 0.3, WHITE, 6, BLACK);
+			ILI9341_Draw_Text(Temp_Buffer_text, maxWidth * 0 + offsetWidth + 97, maxHeight * 0.3, WHITE, 6, BLACK);
 		}
 		prevMinuteNum = minuteNum;
 	}
@@ -454,11 +471,11 @@ void secondScreen(bool status, bool isEdit){
 	if (prevSecondNum != secondNum || isEdit == true){
 		if (status == true){
 			sprintf(Temp_Buffer_text, "%02d", (int)secondNum);
-			ILI9341_Draw_Text(Temp_Buffer_text, maxWidth * 0.90 + offsetWidth, maxHeight * 0.42, WHITE, 2, BLACK);
+			ILI9341_Draw_Text(Temp_Buffer_text, maxWidth * 0.90 + offsetWidth -3, maxHeight * 0.42, WHITE, 2, BLACK);
 		}
 		else{
 			sprintf(Temp_Buffer_text, "  ");
-			ILI9341_Draw_Text(Temp_Buffer_text, maxWidth * 0.90 + offsetWidth, maxHeight * 0.42, WHITE, 2, BLACK);
+			ILI9341_Draw_Text(Temp_Buffer_text, maxWidth * 0.90 + offsetWidth -3, maxHeight * 0.42, WHITE, 2, BLACK);
 		}
 		prevSecondNum = secondNum;
 	}
@@ -610,6 +627,40 @@ void bottomBarScreen(){
 	sprintf(Temp_Buffer_text, "BWD");
 	ILI9341_Draw_Text(Temp_Buffer_text, maxWidth * 0.75 + offsetWidth, maxHeight * 0.9, BLACK, size, GREEN);
 }
+void BottomBarScreenUpdate(){
+
+	uint8_t size = 2;
+	uint8_t bottomWidth1 = maxWidth * 0 + 51;
+	uint8_t bottomHeight = maxHeight * 0.87;
+	uint8_t bottomWidth4 = maxWidth * 0.75 + 51;
+	uint8_t bottomWidth = 55;
+
+	//Update Temperature
+	if(prevTemp != temp){
+		sprintf(Temp_Buffer_text, "%0.1f 'C", temp);
+		ILI9341_Draw_Text(Temp_Buffer_text, maxWidth * 0.0 + offsetWidth, maxHeight * 0.7-10, WHITE, size, BLACK);
+		prevTemp = temp;
+		ILI9341_Draw_Hollow_Rectangle_Coord(bottomWidth1, bottomHeight-45-10, bottomWidth4 + bottomWidth, maxHeight-52-10, WHITE);
+	}
+	//Update Humidity
+	if(prevHumid != humid){
+		sprintf(Temp_Buffer_text, "%0.1f %%", humid);
+		ILI9341_Draw_Text(Temp_Buffer_text, maxWidth * 0.55 + offsetWidth, maxHeight * 0.7-10, WHITE, size, BLACK);
+		prevHumid = humid;
+		ILI9341_Draw_Hollow_Rectangle_Coord(bottomWidth1, bottomHeight-45-10, bottomWidth4 + bottomWidth, maxHeight-52-10, WHITE);
+	}
+	//Update PM2.5
+	if(prevPmTwoPointFive != pmTwoPointFive){ // update this value please
+		sprintf(Temp_Buffer_text, "      %03d ug/m^3", (int)pmTwoPointFive);
+		ILI9341_Draw_Text(Temp_Buffer_text, maxWidth * 0.0 + offsetWidth, maxHeight * 0.7+18, WHITE, size, BLACK); // Change color
+
+		sprintf(Temp_Buffer_text, "PM2.5");
+		ILI9341_Draw_Text(Temp_Buffer_text, maxWidth * 0.0 + offsetWidth, maxHeight * 0.7+18, WHITE, size, BLACK);
+
+		prevPmTwoPointFive = pmTwoPointFive;
+		ILI9341_Draw_Hollow_Rectangle_Coord(bottomWidth1, bottomHeight-45+18, bottomWidth4 + bottomWidth, maxHeight-52+18, WHITE);
+	}
+}
 
 //Buzzer Sound
 void buzzerSound(){
@@ -619,14 +670,84 @@ void buzzerSound(){
 	HAL_TIM_PWM_Stop(&htim3, TIM_CHANNEL_1);
 }
 
+void notifyPm(){
+	float *respondRead;
+	respondRead = read_sensirion();
+
+	if(millisecondHAL - pmPrevMillisecondHAL >= 20000 && respondRead[1] >= 0 && respondRead[1] <= 9999){
+		if(respondRead[1]>=250){
+			sent_string_to_mcu("HAZ");
+		}
+		else if(respondRead[1]>=150){
+			sent_string_to_mcu("VUH");
+		}
+		else if(respondRead[1]>=55){
+			sent_string_to_mcu("UHT");
+		}
+		if(respondRead[1]>=55){
+			println("Danger Air");
+			println("Sending");
+			char stringBuffer[500];
+			sprintf(stringBuffer, "EXC %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f" , respondRead[0], respondRead[1], respondRead[2], respondRead[3], respondRead[4], respondRead[5], respondRead[6], respondRead[7], respondRead[8], respondRead[9], respondRead[10]);
+			sent_string_to_mcu(stringBuffer);
+		}
+		else{
+			println("Normal Air");
+		}
+
+		pmPrevMillisecondHAL = millisecondHAL;
+	}
+
+
+}
+
 char str[50];
 uint8_t cmdBuffer[3];
 uint8_t dataBuffer[8];
+
+void tempMonitor(){
+	//Temperature
+	cmdBuffer[0] = 0x03;
+	cmdBuffer[1] = 0x00;
+	cmdBuffer[2] = 0x04;
+
+	//Send Temp & Humid via UART3
+	sprintf(str, "Temperature = %4.1f\tHumidity = %4.1f\n\r", temp, humid);
+	while(__HAL_UART_GET_FLAG(&huart3,UART_FLAG_TC)==RESET){}
+	HAL_UART_Transmit(&huart3, (uint8_t*) str, strlen(str),200);
+
+	//HAL_Delay(5000); //>3000 ms
+	//HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_0);
+
+	//Wake up sensor
+	HAL_I2C_Master_Transmit(&hi2c1, 0x5c<<1, cmdBuffer, 3, 200);
+	//Send reading command
+	HAL_I2C_Master_Transmit(&hi2c1, 0x5c<<1, cmdBuffer, 3, 200);
+
+	HAL_Delay(80); // 50 is too low, 80 is okay
+
+	//Receive sensor data
+	HAL_I2C_Master_Receive(&hi2c1, 0x5c<<1, dataBuffer, 8, 200);
+
+	uint16_t Rcrc = dataBuffer[7] << 8;
+	Rcrc += dataBuffer[6];
+	if (Rcrc == CRC16_2(dataBuffer, 6)) {
+		uint16_t temperature = ((dataBuffer[4] & 0x7F) << 8) + dataBuffer[5];
+		temp = temperature / 10.0;
+		temp = (((dataBuffer[4] & 0x80) >> 7)== 1) ? (temp * (-1)) : temp ; // the temperature can be negative
+
+		uint16_t humidity = (dataBuffer[2] << 8) + dataBuffer[3];
+		humid = humidity / 10.0;
+	}
+}
+
 
 void assignmentTwo(){
 
 	calculationClock(millisecond);
 	checkResetData();
+	tempMonitor();
+	notifyPm();
 
 	if (prevMode != mode || prevModeEdit != modeEdit){
 		prevModeEdit = modeEdit;
@@ -640,6 +761,7 @@ void assignmentTwo(){
 	if (mode == 0){
 		topBarScreen();
 		displayClockScreen();
+		BottomBarScreenUpdate();
 	}
 	else if (mode == 100){ // Adjust modeEdit 1-year, 2-month, 3-date, 4-day, 5-hour, 6-minute, 7-second
 
@@ -669,6 +791,8 @@ void assignmentTwo(){
 	}
 	else if (mode == 1)
 	{
+
+
 	}
 
 	//Test huart1 UART PB6 TX - PB15 RX
@@ -720,6 +844,7 @@ int main(void)
   MX_TIM2_Init();
   MX_TIM3_Init();
   MX_USART1_UART_Init();
+  MX_UART4_Init();
   /* USER CODE BEGIN 2 */
 
 	//Temp but not has code in here yet
@@ -741,12 +866,9 @@ int main(void)
 	readData();
 
 	// Setup PM Sensor
-	uint8_t* respondStart;
+	uint8_t *respondStart;
 	respondStart = wake_sensirion();
-	//print_whole_data_array(respondStart);
-
-	uint8_t* respondRead;
-	respondRead = read_sensirion();
+	sent_string_to_mcu("STA");
 
 
   /* USER CODE END 2 */
@@ -760,10 +882,6 @@ int main(void)
     /* USER CODE BEGIN 3 */
 
 		// REAL CODE BEGIN
-
-		// PM SENSOR CODE BEGIN
-
-		// PM SENSOR CODE END
 
 		//	  char stringBuffer[30];
 		//	  sprintf(stringBuffer, "%d\r\n" , millisecond);
@@ -786,7 +904,6 @@ int main(void)
 //		pressButton2 = 0;
 //		pressButton3 = 0;
 //		pressButton4 = 0;
-
 
 		//Buzzer
 		if ((pressButton1 == true && isPressButton1 == false) ||
@@ -958,9 +1075,11 @@ void SystemClock_Config(void)
     Error_Handler();
   }
   PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_USART1|RCC_PERIPHCLK_USART3
-                              |RCC_PERIPHCLK_I2C1|RCC_PERIPHCLK_CLK48;
+                              |RCC_PERIPHCLK_UART4|RCC_PERIPHCLK_I2C1
+                              |RCC_PERIPHCLK_CLK48;
   PeriphClkInitStruct.Usart1ClockSelection = RCC_USART1CLKSOURCE_PCLK2;
   PeriphClkInitStruct.Usart3ClockSelection = RCC_USART3CLKSOURCE_PCLK1;
+  PeriphClkInitStruct.Uart4ClockSelection = RCC_UART4CLKSOURCE_PCLK1;
   PeriphClkInitStruct.I2c1ClockSelection = RCC_I2C1CLKSOURCE_PCLK1;
   PeriphClkInitStruct.Clk48ClockSelection = RCC_CLK48SOURCE_PLL;
   if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct) != HAL_OK)

@@ -62,12 +62,12 @@ uint8_t *wake_sensirion()
 	{
 	}
 	HAL_UART_Receive(&huart1, (uint8_t *)data, sizeof(data), 1000);
-	HAL_Delay(1000);
+	//HAL_Delay(1000);
 	return data;
 }
 
 // Read from SPS30 by sent read frame
-uint8_t *read_sensirion()
+float *read_sensirion()
 {
 	// ! For debug only
 	//println("Sent read frame");
@@ -85,7 +85,7 @@ uint8_t *read_sensirion()
 	while (__HAL_UART_GET_FLAG(&huart1, UART_FLAG_TC) == RESET)
 	{
 	}
-	HAL_UART_Receive(&huart1, (uint8_t *)data, sizeof(data), 1000);
+	HAL_UART_Receive(&huart1, (uint8_t *)data, sizeof(data), 100); // from 1000 to 100
 
 	// Check for start frame
 	if (data[0] == 0x7E && data[1] == 0x00)
@@ -107,7 +107,7 @@ uint8_t *read_sensirion()
 		}
 
 		uint32_t concatenateHex[10];
-		float actualValue[10];
+		static float actualValue[10];
 		// Concatenate HEX(2,2,2,2) into HEX(8) and convert concatenate hex to float ieee754
 		for (int i = 0; i < 10; i++)
 		{
@@ -123,12 +123,12 @@ uint8_t *read_sensirion()
 			sprintf(stringBuffer, "%.4f\r\n", actualValue[i]);
 			HAL_UART_Transmit(&huart3, (uint8_t *)stringBuffer, strlen(stringBuffer), 200);
 		}
-		HAL_Delay(1000);
+		//HAL_Delay(1000);
 		return actualValue;
 	}
 	else
 	{
-		HAL_Delay(1000);
+		//HAL_Delay(1000);
 		return NULL;
 	}
 }
