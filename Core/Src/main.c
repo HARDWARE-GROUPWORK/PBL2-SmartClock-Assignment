@@ -19,6 +19,7 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "adc.h"
 #include "i2c.h"
 #include "rng.h"
 #include "spi.h"
@@ -70,6 +71,14 @@ float prevTemp = -1.0;
 float prevHumid = -1.0;
 float prevPmTwoPointFive = -1.0;
 
+//Alarm
+int32_t alarmMinute = 0;
+int32_t alarmHour = 0;
+
+//Prev Clock Timer
+int32_t prevAlarmMinute = -1;
+int32_t prevAlarmHour = -1;
+
 //Clock Timer
 uint32_t millisecond = 0;
 uint32_t millisecondStopWatch = 0;
@@ -83,6 +92,9 @@ int32_t hourNum = 12;
 int32_t prevSecondNum = -1;
 int32_t prevMinuteNum = -1;
 int32_t prevHourNum = -1;
+
+//ADC
+volatile uint32_t adc_val = 0;
 
 //Timer States
 bool halfsecondState = true;
@@ -99,7 +111,7 @@ uint16_t maxHeight = 240;
 uint16_t offsetWidthDate = 40;
 
 //Main States
-int16_t mode = 1;
+int16_t mode = 0;
 int16_t modeEdit = 1;
 int16_t prevMode = -1;
 int16_t prevModeEdit = -1;
@@ -116,6 +128,9 @@ bool isPressButton3 = false;
 bool isPressButton4 = false;
 
 bool userResetButton = false;
+
+//Alarm State
+bool alarmIsOn = true;
 
 //HAL Timers
 uint64_t secondCounter = 0;
@@ -162,6 +177,11 @@ void saveData(){
 	EEPROM_Write_NUM (5, 0, date);
 	EEPROM_Write_NUM (6, 0, monthIndex);
 	EEPROM_Write_NUM (7, 0, year);
+
+	//Alarm
+	EEPROM_Write_NUM (8, 0, alarmHour);
+	EEPROM_Write_NUM (9, 0, alarmMinute);
+	EEPROM_Write_NUM (10, 0, alarmIsOn);
 }
 // Read EEPROM
 void readData(){
@@ -175,6 +195,11 @@ void readData(){
 	date = EEPROM_Read_NUM (5, 0);
 	monthIndex = EEPROM_Read_NUM (6, 0);
 	year = EEPROM_Read_NUM (7, 0);
+
+	//Alarm
+	alarmHour = EEPROM_Read_NUM (8, 0);
+	alarmMinute = EEPROM_Read_NUM (9, 0);
+	alarmIsOn = EEPROM_Read_NUM (10, 0);
 }
 
 // Erase EERPOM
@@ -220,6 +245,15 @@ void setDayX(uint8_t num){
 	date = num;
 }
 
+void compareAlarmClock(){ //Check If alarmIsOn and equal to alarm setting, alert!
+	if(alarmIsOn == true && hourNum == alarmHour && minuteNum == alarmMinute){
+		for(uint8_t i = 0; i < 4; i++){
+			buzzerSound(40); // waiting for test
+			HAL_Delay(40);
+		}
+	}
+}
+
 //Calculation
 void calculationClock(){
 
@@ -229,6 +263,7 @@ void calculationClock(){
 	if (millisecond >= 1000){
 		millisecond = 0;
 		secondNum++;
+		compareAlarmClock();
 	}
 	if (secondNum >= 60){
 		secondNum = 0;
@@ -397,19 +432,27 @@ void displayDateScreen(){
 	yearScreen(true, false);
 }
 
+void displayAlarmIcon(bool on){
+	if(on == true){
+		//Alarm
+		ILI9341_Draw_Filled_Circle(maxWidth * 0.92 + offsetWidth, maxHeight * 0.13, 6, YELLOW);
+		ILI9341_Draw_Filled_Circle(maxWidth * 0.92 + offsetWidth, maxHeight * 0.16-1, 3, YELLOW);
+		ILI9341_Draw_Filled_Rectangle_Coord(maxWidth*0.9 +offsetWidth-6, maxHeight * 0.1 +9, maxWidth*0.9 +offsetWidth+14, maxHeight * 0.1 +13, YELLOW);
+		ILI9341_Draw_Hollow_Rectangle_Coord(maxWidth*0.9 +offsetWidth-6, maxHeight * 0.1 +9, maxWidth*0.9 +offsetWidth+14, maxHeight * 0.1 +13, BLACK);
+	}else{
+		//Alarm (Black Icon)
+		ILI9341_Draw_Filled_Circle(maxWidth * 0.92 + offsetWidth, maxHeight * 0.13, 6, BLACK);
+		ILI9341_Draw_Filled_Circle(maxWidth * 0.92 + offsetWidth, maxHeight * 0.16-1, 3, BLACK);
+		ILI9341_Draw_Filled_Rectangle_Coord(maxWidth*0.9 +offsetWidth-6, maxHeight * 0.1 +9, maxWidth*0.9 +offsetWidth+14, maxHeight * 0.1 +13, BLACK);
+		ILI9341_Draw_Hollow_Rectangle_Coord(maxWidth*0.9 +offsetWidth-6, maxHeight * 0.1 +9, maxWidth*0.9 +offsetWidth+14, maxHeight * 0.1 +13, BLACK);
+	}
+}
+
 //Top Screen
 void topBarScreen(){
 	displayDateScreen();
 
-	//Alarm
-	ILI9341_Draw_Filled_Circle(maxWidth * 0.92 + offsetWidth, maxHeight * 0.13, 6, YELLOW);
-	ILI9341_Draw_Filled_Circle(maxWidth * 0.92 + offsetWidth, maxHeight * 0.16-1, 3, YELLOW);
-	ILI9341_Draw_Filled_Rectangle_Coord(maxWidth*0.9 +offsetWidth-6, maxHeight * 0.1 +9, maxWidth*0.9 +offsetWidth+14, maxHeight * 0.1 +13, YELLOW);
-	ILI9341_Draw_Hollow_Rectangle_Coord(maxWidth*0.9 +offsetWidth-6, maxHeight * 0.1 +9, maxWidth*0.9 +offsetWidth+14, maxHeight * 0.1 +13, BLACK);
-
-
-//	sprintf(Temp_Buffer_text, "24:00");
-//	ILI9341_Draw_Text(Temp_Buffer_text, maxWidth * 0.7 + offsetWidth, maxHeight * 0.1, WHITE, 2, BLACK);
+	displayAlarmIcon(alarmIsOn);
 }
 
 //Reset Prev Values
@@ -663,10 +706,10 @@ void bottomBarScreenUpdate(){
 }
 
 //Buzzer Sound
-void buzzerSound(){
+void buzzerSound(uint32_t delay){
 	htim3.Instance->CCR1 = (1000 - 1) * 0.5;
 	HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
-	HAL_Delay(70);
+	HAL_Delay(delay);
 	HAL_TIM_PWM_Stop(&htim3, TIM_CHANNEL_1);
 }
 
@@ -697,9 +740,24 @@ void notifyPm(){
 
 		pmPrevMillisecondHAL = millisecondHAL;
 	}
-
-
 }
+
+void resisterMonitor(){
+
+	  float dutyCycleScreen = 0.0;
+	  while(HAL_ADC_PollForConversion(&hadc1, 100) != HAL_OK){}
+	  adc_val = HAL_ADC_GetValue(&hadc1);
+	  lightPercent = adc_val*100 / 4095;
+
+	  //Change Screen Light Output
+	  //PWM
+	  dutyCycleScreen = ((adc_val/4095.0) * 0.8) + 0.2;
+	  //No. 2
+	  htim3.Instance -> CCR1 = (1000-1) * dutyCycleScreen;
+
+	  HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
+}
+
 
 int32_t stopWatchHour = 0;
 int32_t stopWatchMinute = 0;
@@ -711,7 +769,7 @@ int32_t prevStopWatchSecond = -1;
 int32_t prevStopWatchMillisecond = -1;
 
 //State
-bool initalStopWatchScreen = false;
+bool initialStopWatchScreen = false;
 bool isStopWatchRunning = false;
 
 
@@ -767,19 +825,20 @@ void displayStopWatchScreen(){
 
 void stopWatchScreen(){
 
-	if(initalStopWatchScreen == false){
+	if(initialStopWatchScreen == false){
 		resetPrevStopWatch();
 		//Statics
+		displayAlarmIcon(alarmIsOn);
+
 		sprintf(Temp_Buffer_text, "Stopwatch");
-		ILI9341_Draw_Text(Temp_Buffer_text, offsetWidth + offsetWidthDate*0 -5, maxHeight * 0.1, WHITE, 2, BLACK);
+		ILI9341_Draw_Text(Temp_Buffer_text, offsetWidth + offsetWidthDate*0, maxHeight * 0.1, WHITE, 2, BLACK);
 
 		sprintf(Temp_Buffer_text, ":");
 		ILI9341_Draw_Text(Temp_Buffer_text, offsetWidth+60, maxHeight * 0.37+16, WHITE, 4, BLACK);
 		sprintf(Temp_Buffer_text, ":");
 		ILI9341_Draw_Text(Temp_Buffer_text, offsetWidth+130, maxHeight * 0.37+16, WHITE, 4, BLACK);
 
-		displayStopWatchScreen(); //Initial first Time;
-		initalStopWatchScreen = true;
+		initialStopWatchScreen = true;
 	}
 
 	//Time running
@@ -815,6 +874,67 @@ void stopWatchScreen(){
 
 }
 
+
+//State
+bool initialAlarmClockScreen = false;
+bool initialEditAlarmClockScreen = false;
+
+void resetPrevAlarm(){
+	prevAlarmMinute = -1;
+	prevAlarmHour = -1;
+}
+
+void hourAlarmScreen(bool status, bool isEdit){
+	if (prevAlarmHour != alarmHour || isEdit == true){
+		if (status == true){
+			sprintf(Temp_Buffer_text, "%02d", (int)alarmHour);
+			ILI9341_Draw_Text(Temp_Buffer_text, maxWidth * 0 + offsetWidth, maxHeight * 0.3 +10, WHITE, 6, BLACK);
+		}
+		else{
+			sprintf(Temp_Buffer_text, "  ");
+			ILI9341_Draw_Text(Temp_Buffer_text, maxWidth * 0 + offsetWidth, maxHeight * 0.3 +10, WHITE, 6, BLACK);
+		}
+		prevAlarmHour = alarmHour;
+	}
+}
+
+void minuteAlarmScreen(bool status, bool isEdit){
+	if (prevAlarmMinute != alarmMinute || isEdit == true){
+		if (status == true){
+
+			sprintf(Temp_Buffer_text, "%02d", (int)alarmMinute);
+			ILI9341_Draw_Text(Temp_Buffer_text, maxWidth * 0 + offsetWidth + 110, maxHeight * 0.3 +10, WHITE, 6, BLACK);
+		}
+		else{
+			sprintf(Temp_Buffer_text, "  ");
+			ILI9341_Draw_Text(Temp_Buffer_text, maxWidth * 0 + offsetWidth + 110, maxHeight * 0.3 +10, WHITE, 6, BLACK);
+		}
+		prevAlarmMinute = alarmMinute;
+	}
+}
+void colonAlarmScreen(){
+	sprintf(Temp_Buffer_text, ":");
+	ILI9341_Draw_Text(Temp_Buffer_text, maxWidth * 0 + offsetWidth + 80, maxHeight * 0.35 +10, WHITE, 4, BLACK);
+}
+
+void alarmClockScreen(){
+	if(initialAlarmClockScreen == false){
+		resetPrevAlarm();
+
+		//Statics
+		sprintf(Temp_Buffer_text, "Alarm");
+		ILI9341_Draw_Text(Temp_Buffer_text, offsetWidth + offsetWidthDate*0, maxHeight * 0.1, WHITE, 2, BLACK);
+
+		displayAlarmIcon(alarmIsOn);
+
+		colonAlarmScreen();
+		hourAlarmScreen(true,false);
+		minuteAlarmScreen(true,false);
+
+		initialAlarmClockScreen = true;
+	}
+}
+
 void editScreen(){
 	if(modeEdit == 1){
 		editYearScreen();
@@ -832,6 +952,63 @@ void editScreen(){
 		editSecondScreen();
 	}
 }
+void editAlarmHourScreen(){
+
+	minuteAlarmScreen(true,false);
+
+	if (halfsecondState == false){ // Hour
+		hourAlarmScreen(false, true);
+	}
+	else{
+		hourAlarmScreen(true, true);
+	}
+}
+
+void editAlarmMinuteScreen(){
+	hourAlarmScreen(true,false);
+
+	if (halfsecondState == false){ // Minute
+		minuteAlarmScreen(false, true);
+	}
+	else{
+		minuteAlarmScreen(true, true);
+	}
+}
+void editAlarmScreen(){
+	if(initialEditAlarmClockScreen == false){
+		resetPrevAlarm();
+		displayAlarmIcon(alarmIsOn);
+
+		sprintf(Temp_Buffer_text, "Alarm");
+		ILI9341_Draw_Text(Temp_Buffer_text, offsetWidth + offsetWidthDate*0, maxHeight * 0.1, WHITE, 2, BLACK);
+
+		hourAlarmScreen(true,false);
+		minuteAlarmScreen(true,false);
+
+		initialEditAlarmClockScreen = true;
+	}
+
+	//Algorithm Calculation
+	if (alarmMinute >= 60){
+		alarmMinute = 0;
+	}
+	else if(alarmMinute < 0){
+		alarmMinute = 59;
+	}
+	if (alarmHour >= 24){
+		alarmHour = 0;
+	}
+	else if(alarmHour < 0){
+		alarmHour = 23;
+	}
+
+	if(modeEdit == 1){
+		editAlarmHourScreen();
+	}else if (modeEdit == 2){
+		editAlarmMinuteScreen();
+	}
+}
+
 
 char str[50];
 uint8_t cmdBuffer[3];
@@ -918,6 +1095,7 @@ int main(void)
   MX_TIM3_Init();
   MX_USART1_UART_Init();
   MX_UART4_Init();
+  MX_ADC1_Init();
   /* USER CODE BEGIN 2 */
 
 	//Temp but not has code in here yet
@@ -938,6 +1116,9 @@ int main(void)
 	//Read EEPROM First Time
 	readData();
 
+	//ADC Input variable Resister(Light)
+	HAL_ADC_Start(&hadc1);
+
 	// Setup PM Sensor
 	uint8_t* respondStart;
 	respondStart = wake_sensirion();
@@ -956,12 +1137,16 @@ int main(void)
 
 		// REAL CODE BEGIN
 
+
+
 		calculationClock();
 		checkResetData();
+		resisterMonitor(); //light screen
 
 		if (prevMode != mode || prevModeEdit != modeEdit){
 			prevModeEdit = modeEdit;
 			resetPrevNum();
+			resetPrevAlarm();
 		}
 		// When Change Mode
 		if (prevMode != mode){
@@ -970,7 +1155,11 @@ int main(void)
 			bottomBarScreen();
 
 			//For Mode 1 StopWatch
-			initalStopWatchScreen = false;
+			initialStopWatchScreen = false;
+			//For Mode 2 Alarm
+			initialAlarmClockScreen = false;
+			//For mode 200 Edit Alarm
+			initialEditAlarmClockScreen = false;
 		}
 
 		if(mode == 0){
@@ -987,6 +1176,8 @@ int main(void)
 			}
 		}else if(mode == 1){	// No Notify Line at this mode because has delay
 			stopWatchScreen();
+		}else if(mode == 2){
+			alarmClockScreen();
 		}else if (mode == 100){ // Adjust modeEdit 1-year, 2-month, 3-date, 4-day, 5-hour, 6-minute, 7-second
 
 			if(halfsecond == 1){ // render every 500 ms
@@ -995,6 +1186,14 @@ int main(void)
 
 				notifyPm(); // read every 500 ms
 				editScreen();
+			}
+		}else if (mode == 200){
+			if(halfsecond == 1){ // render every 500 ms
+				halfsecondState = !halfsecondState; // check appearing of colon (:) in clock
+				halfsecond = 0;
+
+				notifyPm(); // read every 500 ms
+				editAlarmScreen();
 			}
 		}
 
@@ -1015,11 +1214,11 @@ int main(void)
 			(pressButton2 == true && isPressButton2 == false) ||
 			(pressButton3 == true && isPressButton3 == false) ||
 			(pressButton4 == true && isPressButton4 == false)){
-			buzzerSound();
+			buzzerSound(70);
 		}
 
 		//General Mode
-		if (pressButton1 == true && isPressButton1 == false && mode != 100){ // increase mode only once
+		if (pressButton1 == true && isPressButton1 == false && !(mode == 100 || mode == 200)){ // increase mode only once
 			mode++;
 			if(mode == 3){
 				mode = 0;
@@ -1041,15 +1240,13 @@ int main(void)
 			}
 		}
 
-
-
-		//Adjust Time Mode
+		//Adjust Time Mode For Mode 0 and 100
 		if (pressButton2 == true && isPressButton2 == false && mode == 0){ // initial time when pressButton2
 			isPressButton2 = true;
 			prevSecondCounter = millisecondHAL;
 		}
 		else if (pressButton2 == true && isPressButton2 == true && mode == 0 && millisecondHAL - prevSecondCounter >= 3000){ // hold for 3 seconds
-			buzzerSound();
+			buzzerSound(70);
 			modeEdit = 1; // Reset to Year First time
 			mode = 100;
 			prevSecondCounter = millisecondHAL;
@@ -1075,23 +1272,17 @@ int main(void)
 		if (pressButton3 == true && isPressButton3 == false && mode == 100){ // increase value
 			if (modeEdit == 1){
 				year--;
-			}
-			else if (modeEdit == 2){
+			}else if (modeEdit == 2){
 				monthIndex--;
-			}
-			else if (modeEdit == 3){
+			}else if (modeEdit == 3){
 				date--;
-			}
-			else if (modeEdit == 4){
+			}else if (modeEdit == 4){
 				dayIndex--;
-			}
-			else if (modeEdit == 5){
+			}else if (modeEdit == 5){
 				hourNum--;
-			}
-			else if (modeEdit == 6){
+			}else if (modeEdit == 6){
 				minuteNum--;
-			}
-			else if (modeEdit == 7){
+			}else if (modeEdit == 7){
 				secondNum = 0;
 			}
 			halfsecondState = false;
@@ -1102,29 +1293,80 @@ int main(void)
 		if (pressButton4 == true && isPressButton4 == false && mode == 100){ // decrease value
 			if (modeEdit == 1){
 				year++;
-			}
-			else if (modeEdit == 2){
+			}else if (modeEdit == 2){
 				monthIndex++;
-			}
-			else if (modeEdit == 3){
+			}else if (modeEdit == 3){
 				date++;
-			}
-			else if (modeEdit == 4){
+			}else if (modeEdit == 4){
 				dayIndex++;
-			}
-			else if (modeEdit == 5){
+			}else if (modeEdit == 5){
 				hourNum++;
-			}
-			else if (modeEdit == 6){
+			}else if (modeEdit == 6){
 				minuteNum++;
-			}
-			else if (modeEdit == 7){
+			}else if (modeEdit == 7){
 				secondNum = 0;
 			}
 			halfsecondState = false;
 			resetPrevNum();
 			isPressButton4 = true;
 		}
+
+
+
+		//Adjust Alarm Mode For Mode 2 and 200
+		if (pressButton2 == true && isPressButton2 == false && mode == 2){ // initial time when pressButton2
+			isPressButton2 = true;
+			alarmIsOn = !alarmIsOn;
+			displayAlarmIcon(alarmIsOn);
+			prevSecondCounter = millisecondHAL;
+		}
+		else if (pressButton2 == true && isPressButton2 == true && mode == 2 && millisecondHAL - prevSecondCounter >= 3000){ // hold for 3 seconds
+			buzzerSound(70);
+			modeEdit = 1; // Reset to Hour First time
+			mode = 200;
+			alarmIsOn = true; // always on when editing this alarm
+			prevSecondCounter = millisecondHAL;
+		}
+		//Exit Alarm Time Mode
+		if (pressButton2 == true && isPressButton2 == false && millisecondHAL - prevSecondCounter >= 1000 && mode == 200){
+			isPressButton2 = true;
+			modeEdit = 1;  // Reset to Hour First time
+			mode = 2;
+			prevSecondCounter = millisecondHAL;
+		}
+
+		//Edit Mode
+		if (pressButton1 == true && isPressButton1 == false && mode == 200){ // increase mode only once
+			modeEdit++;
+			isPressButton1 = true;
+			if (modeEdit == 3){	 // finish loop edit
+				modeEdit = 1; // Reset to Hour
+				mode = 2;	  // Back to Alarm Mode
+			}
+		}
+		//Forward
+		if (pressButton3 == true && isPressButton3 == false && mode == 200){ // increase value
+			if (modeEdit == 1){
+				alarmHour--;
+			}else if (modeEdit == 2){
+				alarmMinute--;
+			}
+			halfsecondState = false;
+			resetPrevAlarm();
+			isPressButton3 = true;
+		}
+		//Backward
+		if (pressButton4 == true && isPressButton4 == false && mode == 200){ // decrease value
+			if (modeEdit == 1){
+				alarmHour++;
+			}else if (modeEdit == 2){
+				alarmMinute++;
+			}
+			halfsecondState = false;
+			resetPrevAlarm();
+			isPressButton4 = true;
+		}
+
 
 		//Reset isPressButton
 		if (pressButton1 == false){
