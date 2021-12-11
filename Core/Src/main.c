@@ -959,7 +959,6 @@ int main(void)
 		calculationClock();
 		checkResetData();
 
-
 		if (prevMode != mode || prevModeEdit != modeEdit){
 			prevModeEdit = modeEdit;
 			resetPrevNum();
@@ -980,19 +979,21 @@ int main(void)
 				halfsecond = 0;
 
 				tempMonitor(); // read every 500 ms
-				notifyPm();
+				notifyPm(); // read every 500 ms
 
 				topBarScreen();
 				displayClockScreen();
 				bottomBarScreenUpdate();
 			}
-		}else if(mode == 1){
+		}else if(mode == 1){	// No Notify Line at this mode because has delay
 			stopWatchScreen();
 		}else if (mode == 100){ // Adjust modeEdit 1-year, 2-month, 3-date, 4-day, 5-hour, 6-minute, 7-second
 
 			if(halfsecond == 1){ // render every 500 ms
 				halfsecondState = !halfsecondState; // check appearing of colon (:) in clock
 				halfsecond = 0;
+
+				notifyPm(); // read every 500 ms
 				editScreen();
 			}
 		}
