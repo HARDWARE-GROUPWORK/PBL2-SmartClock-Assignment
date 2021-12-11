@@ -39,7 +39,7 @@ Core/Src/main.o: ../Core/Src/main.c ../Core/Inc/main.h \
  C:/Users/Tree/Desktop/PBL/PBL2_SmartClock/Drivers/ILI9341/ILI9341_GFX.h \
  C:/Users/Tree/Desktop/PBL/PBL2_SmartClock/Drivers/ILI9341/snow_tiger.h \
  C:/Users/Tree/Desktop/PBL/PBL2_SmartClock/Drivers/STM32-AM2320-master/am2320.h \
- ../Core/Inc/sps30.h
+ ../Core/Inc/sps30.h ../Core/Inc/uart_to_mcu.h
 
 ../Core/Inc/main.h:
 
@@ -134,3 +134,5 @@ C:/Users/Tree/Desktop/PBL/PBL2_SmartClock/Drivers/ILI9341/snow_tiger.h:
 C:/Users/Tree/Desktop/PBL/PBL2_SmartClock/Drivers/STM32-AM2320-master/am2320.h:
 
 ../Core/Inc/sps30.h:
+
+../Core/Inc/uart_to_mcu.h:

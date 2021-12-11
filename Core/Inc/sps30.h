@@ -67,7 +67,7 @@ uint8_t *wake_sensirion()
 }
 
 // Read from SPS30 by sent read frame
-uint8_t *read_sensirion()
+float *read_sensirion()
 {
 	// ! For debug only
 	//println("Sent read frame");
@@ -107,7 +107,7 @@ uint8_t *read_sensirion()
 		}
 
 		uint32_t concatenateHex[10];
-		float actualValue[10];
+		static float actualValue[10];
 		// Concatenate HEX(2,2,2,2) into HEX(8) and convert concatenate hex to float ieee754
 		for (int i = 0; i < 10; i++)
 		{
