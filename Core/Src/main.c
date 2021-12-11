@@ -65,13 +65,14 @@
 int lightPercent = 100;
 float temp = 99.9;
 float humid = 99.9;
-float prevTemp = 0.0;
-float prevHumid = 0.0;
 float pmTwoPointFive = 4.0; // ug/m^3
-float prevPmTwoPointFive = 0.0;
+float prevTemp = -1.0;
+float prevHumid = -1.0;
+float prevPmTwoPointFive = -1.0;
 
 //Clock Timer
 uint32_t millisecond = 0;
+uint32_t millisecondStopWatch = 0;
 uint32_t halfsecond = 0;
 
 int32_t secondNum = 50;
@@ -98,7 +99,7 @@ uint16_t maxHeight = 240;
 uint16_t offsetWidthDate = 40;
 
 //Main States
-int16_t mode = 0;
+int16_t mode = 1;
 int16_t modeEdit = 1;
 int16_t prevMode = -1;
 int16_t prevModeEdit = -1;
@@ -220,13 +221,9 @@ void setDayX(uint8_t num){
 }
 
 //Calculation
-void calculationClock(uint32_t ms){
+void calculationClock(){
 
 	millisecondHAL = HAL_GetTick();
-
-	char hexString[30];
-	sprintf(hexString,"%d\r\n",millisecond);
-	HAL_UART_Transmit(&huart3, (uint8_t*) hexString, strlen(hexString), 1000);
 
 	//Normal Clock
 	if (millisecond >= 1000){
@@ -426,6 +423,9 @@ void resetPrevNum(){
 	prevMonthIndex = -1;
 	prevYear = -1;
 
+	prevTemp = -1.0;
+	prevHumid = -1.0;
+	prevPmTwoPointFive = -1.0;
 }
 
 //Clock Screen Atomic
@@ -627,7 +627,7 @@ void bottomBarScreen(){
 	sprintf(Temp_Buffer_text, "BWD");
 	ILI9341_Draw_Text(Temp_Buffer_text, maxWidth * 0.75 + offsetWidth, maxHeight * 0.9, BLACK, size, GREEN);
 }
-void BottomBarScreenUpdate(){
+void bottomBarScreenUpdate(){
 
 	uint8_t size = 2;
 	uint8_t bottomWidth1 = maxWidth * 0 + 51;
@@ -701,6 +701,127 @@ void notifyPm(){
 
 }
 
+int32_t stopWatchHour = 1;
+int32_t stopWatchMinute = 59;
+int32_t stopWatchSecond = 58;
+int32_t stopWatchMillisecond = 0;
+int32_t prevStopWatchHour = -1;
+int32_t prevStopWatchMinute = -1;
+int32_t prevStopWatchSecond = -1;
+int32_t prevStopWatchMillisecond = -1;
+
+//State
+bool initalStopWatchScreen = false;
+bool isStopWatchRunning = false;
+
+
+void resetPrevStopWatch(){
+	prevStopWatchHour = -1;
+	prevStopWatchMinute = -1;
+	prevStopWatchSecond = -1;
+	prevStopWatchMillisecond = -1;
+}
+void resetStopWatch(){
+	stopWatchHour = 0;
+	stopWatchMinute = 0;
+	stopWatchSecond = 0;
+	stopWatchMillisecond = 0;
+	resetPrevStopWatch();
+}
+
+void displayStopWatchScreen(){
+	if(stopWatchHour < 1){ // Normal StopWatch Mode
+		if(prevStopWatchMinute != stopWatchMinute){
+			sprintf(Temp_Buffer_text, "%02d", (int)stopWatchMinute);
+			ILI9341_Draw_Text(Temp_Buffer_text, offsetWidth, maxHeight * 0.35+16, WHITE, 5, BLACK);
+			prevStopWatchMinute = stopWatchMinute;
+		}
+		if(prevStopWatchSecond != stopWatchSecond){
+			sprintf(Temp_Buffer_text, "%02d", (int)stopWatchSecond);
+			ILI9341_Draw_Text(Temp_Buffer_text, offsetWidth+70, maxHeight * 0.35+16, WHITE, 5, BLACK);
+			prevStopWatchSecond = stopWatchSecond;
+		}
+		if(prevStopWatchMillisecond != stopWatchMillisecond){
+			sprintf(Temp_Buffer_text, "%02d", (int)((stopWatchMillisecond/10)%100));
+			ILI9341_Draw_Text(Temp_Buffer_text, offsetWidth+140, maxHeight * 0.35+16, WHITE, 5, BLACK);
+			prevStopWatchMillisecond = stopWatchMillisecond;
+		}
+	}else if (stopWatchHour >= 1){ // counting more than equal to 1 hour
+		if(prevStopWatchHour != stopWatchHour){
+			sprintf(Temp_Buffer_text, "%02d", (int)stopWatchHour);
+			ILI9341_Draw_Text(Temp_Buffer_text, offsetWidth, maxHeight * 0.35+16, WHITE, 5, BLACK);
+			prevStopWatchHour = stopWatchHour;
+		}
+		if(prevStopWatchMinute != stopWatchMinute){
+			sprintf(Temp_Buffer_text, "%02d", (int)stopWatchMinute);
+			ILI9341_Draw_Text(Temp_Buffer_text, offsetWidth+70, maxHeight * 0.35+16, WHITE, 5, BLACK);
+			prevStopWatchMinute = stopWatchMinute;
+		}
+		if(prevStopWatchSecond != stopWatchSecond){
+			sprintf(Temp_Buffer_text, "%02d", (int)stopWatchSecond);
+			ILI9341_Draw_Text(Temp_Buffer_text, offsetWidth+140, maxHeight * 0.35+16, WHITE, 5, BLACK);
+			prevStopWatchSecond = stopWatchSecond;
+		}
+	}
+}
+
+void stopWatchScreen(){
+
+	if(initalStopWatchScreen == false){
+		resetPrevStopWatch();
+		//Statics
+		sprintf(Temp_Buffer_text, "Stopwatch");
+		ILI9341_Draw_Text(Temp_Buffer_text, offsetWidth + offsetWidthDate*0 -5, maxHeight * 0.1, WHITE, 2, BLACK);
+
+		sprintf(Temp_Buffer_text, ":");
+		ILI9341_Draw_Text(Temp_Buffer_text, offsetWidth+60, maxHeight * 0.37+16, WHITE, 4, BLACK);
+		sprintf(Temp_Buffer_text, ":");
+		ILI9341_Draw_Text(Temp_Buffer_text, offsetWidth+130, maxHeight * 0.37+16, WHITE, 4, BLACK);
+
+		displayStopWatchScreen(); //Initial first Time;
+		initalStopWatchScreen = true;
+	}
+
+	//Time running
+	if(isStopWatchRunning == true){
+		stopWatchMillisecond += millisecondStopWatch;
+		millisecondStopWatch = 0;
+	}
+
+	//Normal Clock
+	if (stopWatchMillisecond >= 1000){
+		stopWatchMillisecond = stopWatchMillisecond - 1000; //Keep remainder of millisecondStopWatch
+		stopWatchSecond++;
+	}
+	if (stopWatchSecond >= 60){
+		stopWatchSecond = 0;
+		stopWatchMinute++;
+	}
+	if (stopWatchMinute >= 60){
+		stopWatchMinute = 0;
+		stopWatchHour++;
+	}
+	if (stopWatchHour >= 99){
+		stopWatchHour = 0;
+	}
+
+	//Running
+	displayStopWatchScreen();
+
+
+//	char hexString[30];
+//	sprintf(hexString,"%d %d\r\n",prevStopWatchHour,stopWatchHour);
+//	HAL_UART_Transmit(&huart3, (uint8_t*) hexString, strlen(hexString), 1000);
+
+
+	//		char hexString[30];
+	//		sprintf(hexString,"%d\r\n",millisecondStopWatch);
+	//		HAL_UART_Transmit(&huart3, (uint8_t*) hexString, strlen(hexString), 1000);
+
+
+
+}
+
 char str[50];
 uint8_t cmdBuffer[3];
 uint8_t dataBuffer[8];
@@ -744,24 +865,16 @@ void tempMonitor(){
 
 void assignmentTwo(){
 
-	calculationClock(millisecond);
-	checkResetData();
+	//calculationClock();
+	//checkResetData();
 	tempMonitor();
 	notifyPm();
 
-	if (prevMode != mode || prevModeEdit != modeEdit){
-		prevModeEdit = modeEdit;
-		resetPrevNum();
-	}
-	if (prevMode != mode){
-		prevMode = mode;
-		setHorizontalScreen(BLACK);
-		bottomBarScreen();
-	}
+
 	if (mode == 0){
 		topBarScreen();
 		displayClockScreen();
-		BottomBarScreenUpdate();
+		bottomBarScreenUpdate();
 	}
 	else if (mode == 100){ // Adjust modeEdit 1-year, 2-month, 3-date, 4-day, 5-hour, 6-minute, 7-second
 
@@ -787,11 +900,6 @@ void assignmentTwo(){
 		else if (modeEdit == 7){
 			editSecondScreen();
 		}
-
-	}
-	else if (mode == 1)
-	{
-
 
 	}
 
@@ -887,12 +995,36 @@ int main(void)
 		//	  sprintf(stringBuffer, "%d\r\n" , millisecond);
 		//	  HAL_UART_Transmit(&huart3, (uint8_t*) stringBuffer, strlen(stringBuffer), 200);
 
-		if (halfsecond == 1){	// interupt every 500 ms
-			halfsecondState = !halfsecondState; // check appearing of colon (:) in clock
-			//displayClock(millisecond);
-			halfsecond = 0;
-			assignmentTwo();
+		calculationClock();
+		checkResetData();
+
+
+		if (prevMode != mode || prevModeEdit != modeEdit){
+			prevModeEdit = modeEdit;
+			resetPrevNum();
 		}
+		// When Change Mode
+		if (prevMode != mode){
+			prevMode = mode;
+			setHorizontalScreen(BLACK);
+			bottomBarScreen();
+
+			//For Mode 1 StopWatch
+			initalStopWatchScreen = false;
+		}
+
+		if(mode == 0){
+			if (halfsecond == 1){	// interupt every 500 ms
+				halfsecondState = !halfsecondState; // check appearing of colon (:) in clock
+				//displayClock(millisecond);
+				halfsecond = 0;
+				assignmentTwo();
+			}
+		}else if(mode == 1){
+			//Dont forget save EEPROM Here (or all in main)
+			stopWatchScreen();
+		}
+
 
 		pressButton1 = !HAL_GPIO_ReadPin(GPIOD, GPIO_PIN_7); // pressButton1 is "true" when press, is "false" when not press
 		pressButton2 = !HAL_GPIO_ReadPin(GPIOD, GPIO_PIN_6); // pressButton1 is "true" when press, is "false" when not press
@@ -914,10 +1046,29 @@ int main(void)
 		}
 
 		//General Mode
-		if (pressButton1 == true && isPressButton1 == false && mode == 0){ // increase mode only once
+		if (pressButton1 == true && isPressButton1 == false && mode != 100){ // increase mode only once
 			mode++;
+			if(mode == 3){
+				mode = 0;
+			}
 			isPressButton1 = true;
 		}
+		//StopWatch Mode
+		if (pressButton2 == true && isPressButton2 == false && mode == 1 && isStopWatchRunning != true){ //Reset StopWatch
+			isPressButton2 = true;
+			resetStopWatch();
+		}
+		if (pressButton3 == true && isPressButton3 == false && mode == 1){ //Running/Stop StopWatch
+			isPressButton3 = true;
+			if(isStopWatchRunning == false){ // press button
+				millisecondStopWatch = 0;
+				isStopWatchRunning = true;
+			}else{
+				isStopWatchRunning = false;
+			}
+		}
+
+
 
 		//Adjust Time Mode
 		if (pressButton2 == true && isPressButton2 == false && mode == 0){ // initial time when pressButton2
@@ -930,7 +1081,6 @@ int main(void)
 			mode = 100;
 			prevSecondCounter = millisecondHAL;
 		}
-
 		//Exit Adjust Time Mode
 		if (pressButton2 == true && isPressButton2 == false && millisecondHAL - prevSecondCounter >= 1000 && mode == 100){
 			isPressButton2 = true;
@@ -948,7 +1098,6 @@ int main(void)
 				mode = 0;	  // Back to General Mode
 			}
 		}
-
 		//Forward
 		if (pressButton3 == true && isPressButton3 == false && mode == 100){ // increase value
 			if (modeEdit == 1){
@@ -976,7 +1125,6 @@ int main(void)
 			resetPrevNum();
 			isPressButton3 = true;
 		}
-
 		//Backward
 		if (pressButton4 == true && isPressButton4 == false && mode == 100){ // decrease value
 			if (modeEdit == 1){

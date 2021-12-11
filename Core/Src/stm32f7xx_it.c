@@ -62,6 +62,7 @@ extern TIM_HandleTypeDef htim2;
 
 extern uint32_t millisecond;
 extern uint32_t halfsecond;
+extern uint32_t millisecondStopWatch;
 
 /* USER CODE END EV */
 
@@ -101,6 +102,7 @@ void TIM1_UP_TIM10_IRQHandler(void)
   /* USER CODE BEGIN TIM1_UP_TIM10_IRQn 1 */
 
   millisecond++;
+  millisecondStopWatch++;
 
   /* USER CODE END TIM1_UP_TIM10_IRQn 1 */
 }
