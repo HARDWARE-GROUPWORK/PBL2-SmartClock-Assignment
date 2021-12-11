@@ -58,36 +58,45 @@
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
 
-int numberOfRecord = 1;
+//Temperature and Humid
 int lightPercent = 100;
 float temp = 99.9;
 float humid = 99.9;
 
+//Clock Timer
 uint32_t millisecond = 0;
 uint32_t halfsecond = 0;
 
-uint32_t secondNum = 50;
-uint32_t minuteNum = 37;
-uint32_t hourNum = 12;
+int32_t secondNum = 50;
+int32_t minuteNum = 37;
+int32_t hourNum = 12;
 
-uint32_t prevSecondNum = -1;
-uint32_t prevMinuteNum = -1;
-uint32_t prevHourNum = -1;
+//Prev Clock Timer
+int32_t prevSecondNum = -1;
+int32_t prevMinuteNum = -1;
+int32_t prevHourNum = -1;
 
+//Timer States
 bool halfsecondState = true;
-bool initialState = false;
-char Temp_Buffer_text[40];
 
-//Horizontal Screen
+//Text
+char Temp_Buffer_text[100];
+
+//Horizontal Clock Screen
 uint16_t maxWidth = 200; //300 //Left 50 - right 50
 uint16_t offsetWidth = 60;
 uint16_t maxHeight = 240;
 
-uint16_t mode = 0;
-uint16_t modeEdit = 1;
-uint16_t prevMode = -1;
-uint16_t prevModeEdit = -1;
+//Horizontal Date Clock Screen
+uint16_t offsetWidthDate = 40;
 
+//Main States
+int16_t mode = 0;
+int16_t modeEdit = 1;
+int16_t prevMode = -1;
+int16_t prevModeEdit = -1;
+
+//Button states
 bool pressButton1 = false;
 bool pressButton2 = false;
 bool pressButton3 = false;
@@ -98,12 +107,24 @@ bool isPressButton2 = false;
 bool isPressButton3 = false;
 bool isPressButton4 = false;
 
-uint16_t secondCounter = 0;
-uint16_t prevSecondCounter = 0;
-uint32_t millisecondHAL = 0;
+//HAL Timers
+uint64_t secondCounter = 0;
+uint64_t prevSecondCounter = 0;
+uint64_t millisecondHAL = 0;
 
-char day[7][3] = {"SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"};
-char month[12][3] = {"JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"};
+//Date Clock
+int8_t date = 1; // 1-31
+char* dayText[7] = {"SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"}; // 7 day names
+char* monthText[12] = {"JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"}; // 12 months    0 2 4 6 7 9 11 for 31 days
+int8_t dayIndex = 0; // 0-6 only
+int8_t monthIndex = 0; // 0-11 only
+int16_t year = 2021; // year
+
+//Prev Date Clock
+int8_t prevDate = -1; // 1-31
+int8_t prevDayIndex = -1; // 7 index day names
+int8_t prevMonthIndex = -1; // 12  index months
+int16_t prevYear = -1; // year
 
 /* USER CODE END PV */
 
@@ -117,52 +138,131 @@ uint16_t CRC16_2(uint8_t *, uint8_t);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
+// Save EEPROM
+
+// Read EEPROM
+
 // Paint screen black
-void setHorizontalScreen(uint16_t color)
-{
+void setHorizontalScreen(uint16_t color){
 	ILI9341_Fill_Screen(color);
 	ILI9341_Set_Rotation(SCREEN_HORIZONTAL_1);
 }
 
-void calculationClock(uint32_t ms)
-{
+bool check31Days(){
+	if(monthIndex == 0 || monthIndex == 2 || monthIndex == 4 || monthIndex == 6 || monthIndex == 7 || monthIndex == 9 || monthIndex == 11){
+		return true;
+	}else{
+		return false;
+	}
+}
+void setDayOneIncrementMonth(uint8_t num){
+	if(date > num){
+		date = 1;
+		if(mode != 100){
+			monthIndex++;
+		}
+	}
+}
+void setDayX(uint8_t num){
+	date = num;
+}
+
+//Calculation
+void calculationClock(uint32_t ms){
 
 	millisecondHAL = HAL_GetTick();
 
-	if (millisecond >= 1000)
-	{
+	//Normal Clock
+	if (millisecond >= 1000){
 		millisecond = 0;
 		secondNum++;
 	}
-	if (secondNum >= 60)
-	{
+	if (secondNum >= 60){
 		secondNum = 0;
-		if (mode != 100)
-		{
+		if (mode != 100){
 			minuteNum++;
 		}
 	}
-	if (minuteNum >= 60)
-	{
+	if (minuteNum >= 60){
 		minuteNum = 0;
-		if (mode != 100)
-		{
+		if (mode != 100){
 			hourNum++;
 		}
 	}
-	if (hourNum >= 24)
-	{
+	if (hourNum >= 24){
 		hourNum = 0;
+		if (mode != 100){
+			dayIndex++;
+			date++;
+		}
+	}
+	//Normal Date
+	if (dayIndex >= 7){
+		dayIndex = 0;
+	}
+	if (year % 4 == 0){ //check for FEB 29 days
+		if(monthIndex == 1){
+			setDayOneIncrementMonth(29); // 29 days
+		}else if(check31Days() == true){
+			setDayOneIncrementMonth(31); // 31 days
+		}else{
+			setDayOneIncrementMonth(30); // 30 days
+		}
+	}else{
+		if(monthIndex == 1){
+			setDayOneIncrementMonth(28); // 28 days
+		}else if(check31Days() == true){
+			setDayOneIncrementMonth(31); // 31 days
+		}else{
+			setDayOneIncrementMonth(30); // 30 days
+		}
+	}
+	if (monthIndex >= 12){
+		monthIndex = 0;
+		if (mode != 100){
+			year++;
+		}
+	}
+	if (year >= 10000){
+		year = 1;
 	}
 
 	//check for editMode
-	if (minuteNum < 0)
-	{
-		minuteNum = 59;
-	}
-	if (hourNum < 0)
-	{
-		hourNum = 23;
+	if(mode == 100){
+		if (minuteNum < 0){
+			minuteNum = 59;
+		}
+		if (hourNum < 0){
+			hourNum = 23;
+		}
+		if (dayIndex < 0){
+			dayIndex = 6;
+		}
+		if (date < 1){
+			if (year % 4 == 0){ //check for FEB 29 days
+				if(monthIndex == 1){
+					setDayX(29); // 29 days
+				}else if(check31Days() == true){
+					setDayX(31); // 31 days
+				}else{
+					setDayX(30); // 30 days
+				}
+			}else{
+				if(monthIndex == 1){
+					setDayX(28); // 28 days
+				}else if(check31Days() == true){
+					setDayX(31); // 31 days
+				}else{
+					setDayX(30); // 30 days
+				}
+			}
+		}
+		if (monthIndex < 0){
+			monthIndex = 11;
+		}
+		if (year < 1){
+			year = 9999;
+		}
 	}
 }
 
@@ -178,31 +278,155 @@ void calculationClock(uint32_t ms)
 //	}
 //}
 
-void topBarScreen()
+
+//Date Clock Atomic
+void dayScreen(bool status, bool isEdit){
+
+	if (prevDayIndex != dayIndex || isEdit == true){
+		if (status == true){
+			sprintf(Temp_Buffer_text, "%s", dayText[dayIndex]);
+			ILI9341_Draw_Text(Temp_Buffer_text, maxWidth * 0.1 + offsetWidthDate*0, maxHeight * 0.1, WHITE, 2, BLACK);
+		}
+		else{
+			sprintf(Temp_Buffer_text, "   ");
+			ILI9341_Draw_Text(Temp_Buffer_text, maxWidth * 0.1 + offsetWidthDate*0, maxHeight * 0.1, WHITE, 2, BLACK);
+		}
+		prevDayIndex = dayIndex;
+	}
+}
+void dateScreen(bool status, bool isEdit){
+	if (prevDate != date || isEdit == true){
+		if (status == true){
+			sprintf(Temp_Buffer_text, "%02d", (int)date);
+			ILI9341_Draw_Text(Temp_Buffer_text, maxWidth * 0.1 + offsetWidthDate*1+8, maxHeight * 0.1, WHITE, 2, BLACK);
+		}
+		else{
+			sprintf(Temp_Buffer_text, "  ");
+			ILI9341_Draw_Text(Temp_Buffer_text, maxWidth * 0.1 + offsetWidthDate*1+8, maxHeight * 0.1, WHITE, 2, BLACK);
+		}
+		prevDate = date;
+	}
+}
+void monthScreen(bool status, bool isEdit){
+	if (prevMonthIndex != monthIndex || isEdit == true){
+		if (status == true){
+			sprintf(Temp_Buffer_text, "%s", monthText[monthIndex]);
+			ILI9341_Draw_Text(Temp_Buffer_text, maxWidth * 0.1 + offsetWidthDate*2, maxHeight * 0.1, WHITE, 2, BLACK);
+		}
+		else{
+			sprintf(Temp_Buffer_text, "   ");
+			ILI9341_Draw_Text(Temp_Buffer_text, maxWidth * 0.1 + offsetWidthDate*2, maxHeight * 0.1, WHITE, 2, BLACK);
+		}
+		prevMonthIndex = monthIndex;
+	}
+}
+void yearScreen(bool status, bool isEdit){
+	if (prevYear != year || isEdit == true){
+		if (status == true){
+			sprintf(Temp_Buffer_text, "%d", (int)year);
+			ILI9341_Draw_Text(Temp_Buffer_text, maxWidth * 0.1 + offsetWidthDate*3+8, maxHeight * 0.1, WHITE, 2, BLACK);
+		}
+		else{
+			sprintf(Temp_Buffer_text, "    ");
+			ILI9341_Draw_Text(Temp_Buffer_text, maxWidth * 0.1 + offsetWidthDate*3+8, maxHeight * 0.1, WHITE, 2, BLACK);
+		}
+		prevYear = year;
+	}
+}
+
+//Display Date Clock Screen
+void displayDateScreen(){
+	dayScreen(true, false);
+	dateScreen(true, false);
+	monthScreen(true, false);
+	yearScreen(true, false);
+}
+
+//Edit Date Clock Screen
+void editDayScreen()
 {
+	dateScreen(true, false);
+	monthScreen(true, false);
+	yearScreen(true, false);
+
+	if (halfsecondState == false){ // day
+		dayScreen(false, true);
+	}
+	else{
+		dayScreen(true, true);
+	}
+}
+void editDateScreen()
+{
+	dayScreen(true, false);
+	monthScreen(true, false);
+	yearScreen(true, false);
+
+	if (halfsecondState == false){ // date
+		dateScreen(false, true);
+	}
+	else{
+		dateScreen(true, true);
+	}
+}
+void editMonthScreen()
+{
+	dayScreen(true, false);
+	dateScreen(true, false);
+	yearScreen(true, false);
+
+	if (halfsecondState == false){ // month
+		monthScreen(false, true);
+	}
+	else{
+		monthScreen(true, true);
+	}
+}
+void editYearScreen()
+{
+	staticClockScreen(); // init Clock first in editing mode
+	dayScreen(true, false);
+	dateScreen(true, false);
+	monthScreen(true, false);
+
+	if (halfsecondState == false){ // day
+		yearScreen(false, true);
+	}
+	else{
+		yearScreen(true, true);
+	}
+}
+
+//Top Screen
+void topBarScreen(){
+
+	displayDateScreen();
 
 	sprintf(Temp_Buffer_text, "ON");
 	ILI9341_Draw_Text(Temp_Buffer_text, maxWidth * 0.9 + offsetWidth - 5, maxHeight * 0.1, BLACK, 2, RED);
 }
 
-void resetPrevNum()
-{
+//Reset Prev Values
+void resetPrevNum(){
 	prevSecondNum = -1;
 	prevMinuteNum = -1;
 	prevHourNum = -1;
+
+	prevDayIndex = -1;
+	prevDate = -1;
+	prevMonthIndex = -1;
+	prevYear = -1;
+
 }
 
-void hourScreen(bool status, bool isEdit)
-{
-	if (prevHourNum != hourNum || isEdit == true)
-	{
-		if (status == true)
-		{
+//Clock Screen Atomic
+void hourScreen(bool status, bool isEdit){
+	if (prevHourNum != hourNum || isEdit == true){
+		if (status == true){
 			sprintf(Temp_Buffer_text, "%02d", (int)hourNum);
 			ILI9341_Draw_Text(Temp_Buffer_text, maxWidth * 0 + offsetWidth - 5, maxHeight * 0.3, WHITE, 6, BLACK);
 		}
-		else
-		{
+		else{
 			sprintf(Temp_Buffer_text, "  ");
 			ILI9341_Draw_Text(Temp_Buffer_text, maxWidth * 0 + offsetWidth - 5, maxHeight * 0.3, WHITE, 6, BLACK);
 		}
@@ -210,48 +434,37 @@ void hourScreen(bool status, bool isEdit)
 	}
 }
 
-void colonScreen(bool status)
-{
-	if (status == true)
-	{
+void colonScreen(bool status){
+	if (status == true){
 		sprintf(Temp_Buffer_text, ":");
 		ILI9341_Draw_Text(Temp_Buffer_text, maxWidth * 0 + offsetWidth + 75, maxHeight * 0.35, WHITE, 4, BLACK);
 	}
-	else
-	{
+	else{
 		sprintf(Temp_Buffer_text, " ");
 		ILI9341_Draw_Text(Temp_Buffer_text, maxWidth * 0 + offsetWidth + 75, maxHeight * 0.35, WHITE, 4, BLACK);
 	}
 }
-void minuteScreen(bool status, bool isEdit)
-{
-	if (prevMinuteNum != minuteNum || isEdit == true)
-	{
-		if (status == true)
-		{
+void minuteScreen(bool status, bool isEdit){
+	if (prevMinuteNum != minuteNum || isEdit == true){
+		if (status == true){
 
 			sprintf(Temp_Buffer_text, "%02d", (int)minuteNum);
 			ILI9341_Draw_Text(Temp_Buffer_text, maxWidth * 0 + offsetWidth + 100, maxHeight * 0.3, WHITE, 6, BLACK);
 		}
-		else
-		{
+		else{
 			sprintf(Temp_Buffer_text, "  ");
 			ILI9341_Draw_Text(Temp_Buffer_text, maxWidth * 0 + offsetWidth + 100, maxHeight * 0.3, WHITE, 6, BLACK);
 		}
 		prevMinuteNum = minuteNum;
 	}
 }
-void secondScreen(bool status, bool isEdit)
-{
-	if (prevSecondNum != secondNum || isEdit == true)
-	{
-		if (status == true)
-		{
+void secondScreen(bool status, bool isEdit){
+	if (prevSecondNum != secondNum || isEdit == true){
+		if (status == true){
 			sprintf(Temp_Buffer_text, "%02d", (int)secondNum);
 			ILI9341_Draw_Text(Temp_Buffer_text, maxWidth * 0.90 + offsetWidth, maxHeight * 0.42, WHITE, 2, BLACK);
 		}
-		else
-		{
+		else{
 			sprintf(Temp_Buffer_text, "  ");
 			ILI9341_Draw_Text(Temp_Buffer_text, maxWidth * 0.90 + offsetWidth, maxHeight * 0.42, WHITE, 2, BLACK);
 		}
@@ -259,15 +472,13 @@ void secondScreen(bool status, bool isEdit)
 	}
 }
 
-void displayClockScreen()
-{
+//Display Clock Screen
+void displayClockScreen(){
 
-	if (halfsecondState == false)
-	{ // colon behaviour
+	if (halfsecondState == false){ // colon behaviour
 		colonScreen(true);
 	}
-	else
-	{
+	else{
 		colonScreen(false);
 	}
 
@@ -276,60 +487,59 @@ void displayClockScreen()
 	hourScreen(true, false);
 }
 
+void staticClockScreen(){
+	colonScreen(true);
+	hourScreen(true, false);
+	minuteScreen(true, false);
+	secondScreen(true, false);
+}
+
+//Edit Clock Screen
 void editHourScreen()
 {
-
+	displayDateScreen(); // Init first
 	colonScreen(true);
 	minuteScreen(true, false);
 	secondScreen(true, false);
 
-	if (halfsecondState == false)
-	{ // hour
+	if (halfsecondState == false){ // hour
 		hourScreen(false, true);
 	}
-	else
-	{
+	else{
 		hourScreen(true, true);
 	}
 }
-void editMinuteScreen()
-{
+void editMinuteScreen(){
 
 	colonScreen(true);
 	hourScreen(true, false);
 	secondScreen(true, false);
 
-	if (halfsecondState == false)
-	{ //minute
+	if (halfsecondState == false){ //minute
 		minuteScreen(false, true);
 	}
-	else
-	{
+	else{
 		minuteScreen(true, true);
 	}
 }
-void editSecondScreen()
-{
+void editSecondScreen(){
 
 	colonScreen(true);
 	hourScreen(true, false);
 	minuteScreen(true, false);
 
-	if (halfsecondState == false)
-	{ //second
+	if (halfsecondState == false){ //second
 		secondScreen(false, true);
 	}
-	else
-	{
+	else{
 		secondScreen(true, true);
 	}
 }
 
-void bottomBarScreen()
-{
+//Bottom Screen
+void bottomBarScreen(){
 
 	uint8_t size = 2;
-	//uint16_t maxWidthFull = 320;
 	uint8_t bottomHeight = maxHeight * 0.87;
 	uint8_t bottomWidth1 = maxWidth * 0 + 51;
 	uint8_t bottomWidth2 = maxWidth * 0.25 + 51;
@@ -337,26 +547,25 @@ void bottomBarScreen()
 	uint8_t bottomWidth4 = maxWidth * 0.75 + 51;
 	uint8_t bottomWidth = 55;
 
+	//Rectangle Background Color
 	ILI9341_Draw_Filled_Rectangle_Coord(bottomWidth1, bottomHeight, bottomWidth1 + bottomWidth, maxHeight, RED);
 	ILI9341_Draw_Filled_Rectangle_Coord(bottomWidth2, bottomHeight, bottomWidth2 + bottomWidth, maxHeight, YELLOW);
 	ILI9341_Draw_Filled_Rectangle_Coord(bottomWidth3, bottomHeight, bottomWidth3 + bottomWidth, maxHeight, CYAN);
 	ILI9341_Draw_Filled_Rectangle_Coord(bottomWidth4, bottomHeight, bottomWidth4 + bottomWidth, maxHeight, GREEN);
 
+	//Text Layout
 	sprintf(Temp_Buffer_text, "MOD");
 	ILI9341_Draw_Text(Temp_Buffer_text, maxWidth * 0 + offsetWidth, maxHeight * 0.9, BLACK, size, RED);
-
 	sprintf(Temp_Buffer_text, "ADJ");
 	ILI9341_Draw_Text(Temp_Buffer_text, maxWidth * 0.25 + offsetWidth, maxHeight * 0.9, BLACK, size, YELLOW);
-
 	sprintf(Temp_Buffer_text, "FWD");
 	ILI9341_Draw_Text(Temp_Buffer_text, maxWidth * 0.5 + offsetWidth, maxHeight * 0.9, BLACK, size, CYAN);
-
 	sprintf(Temp_Buffer_text, "BWD");
 	ILI9341_Draw_Text(Temp_Buffer_text, maxWidth * 0.75 + offsetWidth, maxHeight * 0.9, BLACK, size, GREEN);
 }
 
-void buzzerSound()
-{
+//Buzzer Sound
+void buzzerSound(){
 	htim3.Instance->CCR1 = (1000 - 1) * 0.5;
 	HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
 	HAL_Delay(70);
@@ -367,44 +576,48 @@ char str[50];
 uint8_t cmdBuffer[3];
 uint8_t dataBuffer[8];
 
-void assignmentTwo()
-{
+void assignmentTwo(){
 
 	calculationClock(millisecond);
 
-	if (prevMode != mode || prevModeEdit != modeEdit)
-	{
+	if (prevMode != mode || prevModeEdit != modeEdit){
 		prevModeEdit = modeEdit;
 		resetPrevNum();
 	}
-	if (prevMode != mode)
-	{
+	if (prevMode != mode){
 		prevMode = mode;
 		setHorizontalScreen(BLACK);
-		initialState = false;
 		bottomBarScreen();
 	}
-
-	if (mode == 0)
-	{
+	if (mode == 0){
 		topBarScreen();
 		displayClockScreen();
 	}
-	else if (mode == 100)
-	{ // Adjust time
+	else if (mode == 100){ // Adjust modeEdit 1-year, 2-month, 3-date, 4-day, 5-hour, 6-minute, 7-second
 
-		if (modeEdit == 1)
-		{
+
+		if(modeEdit == 1){
+			editYearScreen();
+		}
+		else if (modeEdit == 2){
+			editMonthScreen();
+		}
+		else if (modeEdit == 3){
+			editDateScreen();
+		}
+		else if (modeEdit == 4){
+			editDayScreen();
+		}
+		else if (modeEdit == 5){
 			editHourScreen();
 		}
-		else if (modeEdit == 2)
-		{
+		else if (modeEdit == 6){
 			editMinuteScreen();
 		}
-		else if (modeEdit == 3)
-		{
+		else if (modeEdit == 7){
 			editSecondScreen();
 		}
+
 	}
 	else if (mode == 1)
 	{
@@ -477,15 +690,11 @@ int main(void)
 	setHorizontalScreen(BLACK);
 
 	// Setup PM Sensor
-
-
-	// start frame is 0x7E and address device is 0x00
-	// finding checksum
-	uint8_t *respondStart;
+	uint8_t* respondStart;
 	respondStart = wake_sensirion();
 	//print_whole_data_array(respondStart);
 
-	uint8_t *respondRead;
+	uint8_t* respondRead;
 	respondRead = read_sensirion();
 
 
@@ -509,8 +718,7 @@ int main(void)
 		//	  sprintf(stringBuffer, "%d\r\n" , millisecond);
 		//	  HAL_UART_Transmit(&huart3, (uint8_t*) stringBuffer, strlen(stringBuffer), 200);
 
-		if (halfsecond == 1)
-		{										// interupt every 500 ms
+		if (halfsecond == 1){	// interupt every 500 ms
 			halfsecondState = !halfsecondState; // check appearing of colon (:) in clock
 			//displayClock(millisecond);
 			halfsecond = 0;
@@ -522,68 +730,82 @@ int main(void)
 		pressButton3 = !HAL_GPIO_ReadPin(GPIOD, GPIO_PIN_5); // pressButton1 is "true" when press, is "false" when not press
 		pressButton4 = !HAL_GPIO_ReadPin(GPIOD, GPIO_PIN_4); // pressButton1 is "true" when press, is "false" when not press
 
+		// NO BUTTON !!! THIS IS TEMPORARY
+//		pressButton1 = 0;
+//		pressButton2 = 0;
+//		pressButton3 = 0;
+//		pressButton4 = 0;
+
+
 		//Buzzer
 		if ((pressButton1 == true && isPressButton1 == false) ||
 			(pressButton2 == true && isPressButton2 == false) ||
 			(pressButton3 == true && isPressButton3 == false) ||
-			(pressButton4 == true && isPressButton4 == false))
-		{
+			(pressButton4 == true && isPressButton4 == false)){
 			buzzerSound();
 		}
 
 		//General Mode
-		if (pressButton1 == true && isPressButton1 == false && mode == 0)
-		{ // increase mode only once
+		if (pressButton1 == true && isPressButton1 == false && mode == 0){ // increase mode only once
 			mode++;
 			isPressButton1 = true;
 		}
 
 		//Adjust Time Mode
-		if (pressButton2 == true && isPressButton2 == false && mode == 0)
-		{ // initial time when pressButton2
+		if (pressButton2 == true && isPressButton2 == false && mode == 0){ // initial time when pressButton2
 			isPressButton2 = true;
 			prevSecondCounter = millisecondHAL;
 		}
-		else if (pressButton2 == true && isPressButton2 == true && mode == 0 && millisecondHAL - prevSecondCounter >= 3000)
-		{ // hold for 3 seconds
+		else if (pressButton2 == true && isPressButton2 == true && mode == 0 && millisecondHAL - prevSecondCounter >= 3000){ // hold for 3 seconds
 			buzzerSound();
+			modeEdit = 1; // Reset to Year First time
 			mode = 100;
 			prevSecondCounter = millisecondHAL;
 		}
 
+		char hexString[50];
+		sprintf(hexString,"%d %d\r\n", mode, modeEdit);
+		HAL_UART_Transmit(&huart3, (uint8_t*) hexString, strlen(hexString), 1000);
+
 		//Exit Adjust Time Mode
-		if (pressButton2 == true && isPressButton2 == false && millisecondHAL - prevSecondCounter >= 1000 && mode == 100)
-		{
+		if (pressButton2 == true && isPressButton2 == false && millisecondHAL - prevSecondCounter >= 1000 && mode == 100){
 			isPressButton2 = true;
+			modeEdit = 1;  // Reset to Year First time
 			mode = 0;
 			prevSecondCounter = millisecondHAL;
 		}
 
 		//Edit Mode
-		if (pressButton1 == true && isPressButton1 == false && mode == 100)
-		{ // increase mode only once
+		if (pressButton1 == true && isPressButton1 == false && mode == 100){ // increase mode only once
 			modeEdit++;
 			isPressButton1 = true;
-			if (modeEdit == 4)
-			{				  // finish loop edit
-				modeEdit = 1; // Reset to hour
+			if (modeEdit == 8){	 // finish loop edit
+				modeEdit = 1; // Reset to Year
 				mode = 0;	  // Back to General Mode
 			}
 		}
 
 		//Forward
-		if (pressButton3 == true && isPressButton3 == false && mode == 100)
-		{ // increase value
-			if (modeEdit == 1)
-			{
+		if (pressButton3 == true && isPressButton3 == false && mode == 100){ // increase value
+			if (modeEdit == 1){
+				year--;
+			}
+			else if (modeEdit == 2){
+				monthIndex--;
+			}
+			else if (modeEdit == 3){
+				date--;
+			}
+			else if (modeEdit == 4){
+				dayIndex--;
+			}
+			else if (modeEdit == 5){
 				hourNum--;
 			}
-			else if (modeEdit == 2)
-			{
+			else if (modeEdit == 6){
 				minuteNum--;
 			}
-			else if (modeEdit == 3)
-			{
+			else if (modeEdit == 7){
 				secondNum = 0;
 			}
 			halfsecondState = false;
@@ -592,18 +814,26 @@ int main(void)
 		}
 
 		//Backward
-		if (pressButton4 == true && isPressButton4 == false && mode == 100)
-		{ // decrease value
-			if (modeEdit == 1)
-			{
+		if (pressButton4 == true && isPressButton4 == false && mode == 100){ // decrease value
+			if (modeEdit == 1){
+				year++;
+			}
+			else if (modeEdit == 2){
+				monthIndex++;
+			}
+			else if (modeEdit == 3){
+				date++;
+			}
+			else if (modeEdit == 4){
+				dayIndex++;
+			}
+			else if (modeEdit == 5){
 				hourNum++;
 			}
-			else if (modeEdit == 2)
-			{
+			else if (modeEdit == 6){
 				minuteNum++;
 			}
-			else if (modeEdit == 3)
-			{
+			else if (modeEdit == 7){
 				secondNum = 0;
 			}
 			halfsecondState = false;
@@ -612,20 +842,16 @@ int main(void)
 		}
 
 		//Reset isPressButton
-		if (pressButton1 == false)
-		{
+		if (pressButton1 == false){
 			isPressButton1 = false;
 		}
-		if (pressButton2 == false)
-		{
+		if (pressButton2 == false){
 			isPressButton2 = false;
 		}
-		if (pressButton3 == false)
-		{
+		if (pressButton3 == false){
 			isPressButton3 = false;
 		}
-		if (pressButton4 == false)
-		{
+		if (pressButton4 == false){
 			isPressButton4 = false;
 		}
 	}
@@ -695,18 +921,14 @@ void SystemClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
-uint16_t CRC16_2(uint8_t *ptr, uint8_t length)
-{
+uint16_t CRC16_2(uint8_t *ptr, uint8_t length){
 	uint16_t crc = 0xFFFF;
 	uint8_t s = 0x00;
 
-	while (length--)
-	{
+	while (length--){
 		crc ^= *ptr++;
-		for (s = 0; s < 8; s++)
-		{
-			if ((crc & 0x01) != 0)
-			{
+		for (s = 0; s < 8; s++){
+			if ((crc & 0x01) != 0){
 				crc >>= 1;
 				crc ^= 0xA001;
 			}
