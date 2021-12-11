@@ -753,7 +753,7 @@ void resisterMonitor(){
 	  //PWM
 	  dutyCycleScreen = ((adc_val/4095.0) * 0.8) + 0.2;
 	  //No. 2
-	  htim3.Instance -> CCR1 = (1000-1) * dutyCycleScreen;
+	  htim3.Instance -> CCR1 = (100-1) * dutyCycleScreen;
 
 	  HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
 }
