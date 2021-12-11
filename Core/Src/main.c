@@ -37,6 +37,8 @@
 #include "am2320.h"
 #include "stdbool.h"
 #include "sps30.h"
+
+#include "EEPROM.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -107,17 +109,19 @@ bool isPressButton2 = false;
 bool isPressButton3 = false;
 bool isPressButton4 = false;
 
+bool userResetButton = false;
+
 //HAL Timers
 uint64_t secondCounter = 0;
 uint64_t prevSecondCounter = 0;
 uint64_t millisecondHAL = 0;
 
 //Date Clock
-int8_t date = 1; // 1-31
+int8_t date = 13; // 1-31
 char* dayText[7] = {"SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"}; // 7 day names
 char* monthText[12] = {"JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"}; // 12 months    0 2 4 6 7 9 11 for 31 days
-int8_t dayIndex = 0; // 0-6 only
-int8_t monthIndex = 0; // 0-11 only
+int8_t dayIndex = 1; // 0-6 only
+int8_t monthIndex = 11; // 0-11 only
 int16_t year = 2021; // year
 
 //Prev Date Clock
@@ -139,8 +143,49 @@ uint16_t CRC16_2(uint8_t *, uint8_t);
 /* USER CODE BEGIN 0 */
 
 // Save EEPROM
+void saveData(){
+	//Clock
+	EEPROM_Write_NUM (1, 0, hourNum);
+	EEPROM_Write_NUM (2, 0, minuteNum);
+	EEPROM_Write_NUM (3, 0, secondNum);
 
+	//Date
+	EEPROM_Write_NUM (4, 0, dayIndex);
+	EEPROM_Write_NUM (5, 0, date);
+	EEPROM_Write_NUM (6, 0, monthIndex);
+	EEPROM_Write_NUM (7, 0, year);
+}
 // Read EEPROM
+void readData(){
+	//Clock
+	hourNum = EEPROM_Read_NUM (1, 0);
+	minuteNum = EEPROM_Read_NUM (2, 0);
+	secondNum = EEPROM_Read_NUM (3, 0);
+
+	//Date
+	dayIndex = EEPROM_Read_NUM (4, 0);
+	date = EEPROM_Read_NUM (5, 0);
+	monthIndex = EEPROM_Read_NUM (6, 0);
+	year = EEPROM_Read_NUM (7, 0);
+}
+
+// Erase EERPOM
+void eraseAllData(){
+	for (int i=0; i<512; i++)
+	{
+	  EEPROM_PageErase(i);
+	}
+	year = 2021;
+	EEPROM_Write_NUM (7, 0, year); // override year
+	readData(); // Read from Clean EEPROM
+}
+
+void checkResetData(){
+	if(userResetButton == 1){
+		eraseAllData();
+		userResetButton = 0;
+	}
+}
 
 // Paint screen black
 void setHorizontalScreen(uint16_t color){
@@ -264,6 +309,8 @@ void calculationClock(uint32_t ms){
 			year = 9999;
 		}
 	}
+
+	saveData();
 }
 
 //void displayClock(uint32_t ms){
@@ -323,7 +370,7 @@ void monthScreen(bool status, bool isEdit){
 void yearScreen(bool status, bool isEdit){
 	if (prevYear != year || isEdit == true){
 		if (status == true){
-			sprintf(Temp_Buffer_text, "%d", (int)year);
+			sprintf(Temp_Buffer_text, "%04d", (int)year);
 			ILI9341_Draw_Text(Temp_Buffer_text, maxWidth * 0.1 + offsetWidthDate*3+8, maxHeight * 0.1, WHITE, 2, BLACK);
 		}
 		else{
@@ -340,61 +387,6 @@ void displayDateScreen(){
 	dateScreen(true, false);
 	monthScreen(true, false);
 	yearScreen(true, false);
-}
-
-//Edit Date Clock Screen
-void editDayScreen()
-{
-	dateScreen(true, false);
-	monthScreen(true, false);
-	yearScreen(true, false);
-
-	if (halfsecondState == false){ // day
-		dayScreen(false, true);
-	}
-	else{
-		dayScreen(true, true);
-	}
-}
-void editDateScreen()
-{
-	dayScreen(true, false);
-	monthScreen(true, false);
-	yearScreen(true, false);
-
-	if (halfsecondState == false){ // date
-		dateScreen(false, true);
-	}
-	else{
-		dateScreen(true, true);
-	}
-}
-void editMonthScreen()
-{
-	dayScreen(true, false);
-	dateScreen(true, false);
-	yearScreen(true, false);
-
-	if (halfsecondState == false){ // month
-		monthScreen(false, true);
-	}
-	else{
-		monthScreen(true, true);
-	}
-}
-void editYearScreen()
-{
-	staticClockScreen(); // init Clock first in editing mode
-	dayScreen(true, false);
-	dateScreen(true, false);
-	monthScreen(true, false);
-
-	if (halfsecondState == false){ // day
-		yearScreen(false, true);
-	}
-	else{
-		yearScreen(true, true);
-	}
 }
 
 //Top Screen
@@ -536,6 +528,61 @@ void editSecondScreen(){
 	}
 }
 
+//Edit Date Clock Screen
+void editDayScreen()
+{
+	dateScreen(true, false);
+	monthScreen(true, false);
+	yearScreen(true, false);
+
+	if (halfsecondState == false){ // day
+		dayScreen(false, true);
+	}
+	else{
+		dayScreen(true, true);
+	}
+}
+void editDateScreen()
+{
+	dayScreen(true, false);
+	monthScreen(true, false);
+	yearScreen(true, false);
+
+	if (halfsecondState == false){ // date
+		dateScreen(false, true);
+	}
+	else{
+		dateScreen(true, true);
+	}
+}
+void editMonthScreen()
+{
+	dayScreen(true, false);
+	dateScreen(true, false);
+	yearScreen(true, false);
+
+	if (halfsecondState == false){ // month
+		monthScreen(false, true);
+	}
+	else{
+		monthScreen(true, true);
+	}
+}
+void editYearScreen()
+{
+	staticClockScreen(); // init Clock first in editing mode
+	dayScreen(true, false);
+	dateScreen(true, false);
+	monthScreen(true, false);
+
+	if (halfsecondState == false){ // day
+		yearScreen(false, true);
+	}
+	else{
+		yearScreen(true, true);
+	}
+}
+
 //Bottom Screen
 void bottomBarScreen(){
 
@@ -579,6 +626,7 @@ uint8_t dataBuffer[8];
 void assignmentTwo(){
 
 	calculationClock(millisecond);
+	checkResetData();
 
 	if (prevMode != mode || prevModeEdit != modeEdit){
 		prevModeEdit = modeEdit;
@@ -637,42 +685,42 @@ void assignmentTwo(){
   */
 int main(void)
 {
-	/* USER CODE BEGIN 1 */
-	/* USER CODE END 1 */
+  /* USER CODE BEGIN 1 */
+  /* USER CODE END 1 */
 
-	/* Enable I-Cache---------------------------------------------------------*/
-	SCB_EnableICache();
+  /* Enable I-Cache---------------------------------------------------------*/
+  SCB_EnableICache();
 
-	/* Enable D-Cache---------------------------------------------------------*/
-	SCB_EnableDCache();
+  /* Enable D-Cache---------------------------------------------------------*/
+  SCB_EnableDCache();
 
-	/* MCU Configuration--------------------------------------------------------*/
+  /* MCU Configuration--------------------------------------------------------*/
 
-	/* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-	HAL_Init();
+  /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
+  HAL_Init();
 
-	/* USER CODE BEGIN Init */
+  /* USER CODE BEGIN Init */
 
-	/* USER CODE END Init */
+  /* USER CODE END Init */
 
-	/* Configure the system clock */
-	SystemClock_Config();
+  /* Configure the system clock */
+  SystemClock_Config();
 
-	/* USER CODE BEGIN SysInit */
+  /* USER CODE BEGIN SysInit */
 
-	/* USER CODE END SysInit */
+  /* USER CODE END SysInit */
 
-	/* Initialize all configured peripherals */
-	MX_GPIO_Init();
-	MX_USART3_UART_Init();
-	MX_SPI5_Init();
-	MX_TIM1_Init();
-	MX_RNG_Init();
-	MX_I2C1_Init();
-	MX_TIM2_Init();
-	MX_TIM3_Init();
-	MX_USART1_UART_Init();
-	/* USER CODE BEGIN 2 */
+  /* Initialize all configured peripherals */
+  MX_GPIO_Init();
+  MX_USART3_UART_Init();
+  MX_SPI5_Init();
+  MX_TIM1_Init();
+  MX_RNG_Init();
+  MX_I2C1_Init();
+  MX_TIM2_Init();
+  MX_TIM3_Init();
+  MX_USART1_UART_Init();
+  /* USER CODE BEGIN 2 */
 
 	//Temp but not has code in here yet
 	cmdBuffer[0] = 0x03;
@@ -689,6 +737,9 @@ int main(void)
 	//Reset Screen
 	setHorizontalScreen(BLACK);
 
+	//Read EEPROM First Time
+	readData();
+
 	// Setup PM Sensor
 	uint8_t* respondStart;
 	respondStart = wake_sensirion();
@@ -698,15 +749,15 @@ int main(void)
 	respondRead = read_sensirion();
 
 
-	/* USER CODE END 2 */
+  /* USER CODE END 2 */
 
-	/* Infinite loop */
-	/* USER CODE BEGIN WHILE */
+  /* Infinite loop */
+  /* USER CODE BEGIN WHILE */
 	while (1)
 	{
-		/* USER CODE END WHILE */
+    /* USER CODE END WHILE */
 
-		/* USER CODE BEGIN 3 */
+    /* USER CODE BEGIN 3 */
 
 		// REAL CODE BEGIN
 
@@ -762,10 +813,6 @@ int main(void)
 			mode = 100;
 			prevSecondCounter = millisecondHAL;
 		}
-
-		char hexString[50];
-		sprintf(hexString,"%d %d\r\n", mode, modeEdit);
-		HAL_UART_Transmit(&huart3, (uint8_t*) hexString, strlen(hexString), 1000);
 
 		//Exit Adjust Time Mode
 		if (pressButton2 == true && isPressButton2 == false && millisecondHAL - prevSecondCounter >= 1000 && mode == 100){
@@ -855,7 +902,7 @@ int main(void)
 			isPressButton4 = false;
 		}
 	}
-	/* USER CODE END 3 */
+  /* USER CODE END 3 */
 }
 
 /**
@@ -864,60 +911,62 @@ int main(void)
   */
 void SystemClock_Config(void)
 {
-	RCC_OscInitTypeDef RCC_OscInitStruct = {0};
-	RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
-	RCC_PeriphCLKInitTypeDef PeriphClkInitStruct = {0};
+  RCC_OscInitTypeDef RCC_OscInitStruct = {0};
+  RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
+  RCC_PeriphCLKInitTypeDef PeriphClkInitStruct = {0};
 
-	/** Configure LSE Drive Capability
+  /** Configure LSE Drive Capability
   */
-	HAL_PWR_EnableBkUpAccess();
-	/** Configure the main internal regulator output voltage
+  HAL_PWR_EnableBkUpAccess();
+  /** Configure the main internal regulator output voltage
   */
-	__HAL_RCC_PWR_CLK_ENABLE();
-	__HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
-	/** Initializes the RCC Oscillators according to the specified parameters
+  __HAL_RCC_PWR_CLK_ENABLE();
+  __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
+  /** Initializes the RCC Oscillators according to the specified parameters
   * in the RCC_OscInitTypeDef structure.
   */
-	RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
-	RCC_OscInitStruct.HSEState = RCC_HSE_BYPASS;
-	RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
-	RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
-	RCC_OscInitStruct.PLL.PLLM = 4;
-	RCC_OscInitStruct.PLL.PLLN = 200;
-	RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
-	RCC_OscInitStruct.PLL.PLLQ = 9;
-	RCC_OscInitStruct.PLL.PLLR = 2;
-	if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
-	{
-		Error_Handler();
-	}
-	/** Activate the Over-Drive mode
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
+  RCC_OscInitStruct.HSEState = RCC_HSE_BYPASS;
+  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
+  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
+  RCC_OscInitStruct.PLL.PLLM = 4;
+  RCC_OscInitStruct.PLL.PLLN = 200;
+  RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
+  RCC_OscInitStruct.PLL.PLLQ = 9;
+  RCC_OscInitStruct.PLL.PLLR = 2;
+  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /** Activate the Over-Drive mode
   */
-	if (HAL_PWREx_EnableOverDrive() != HAL_OK)
-	{
-		Error_Handler();
-	}
-	/** Initializes the CPU, AHB and APB buses clocks
+  if (HAL_PWREx_EnableOverDrive() != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /** Initializes the CPU, AHB and APB buses clocks
   */
-	RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK | RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
-	RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
-	RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
-	RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV4;
-	RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV2;
+  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
+                              |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
+  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
+  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
+  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV4;
+  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV2;
 
-	if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_6) != HAL_OK)
-	{
-		Error_Handler();
-	}
-	PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_USART1 | RCC_PERIPHCLK_USART3 | RCC_PERIPHCLK_I2C1 | RCC_PERIPHCLK_CLK48;
-	PeriphClkInitStruct.Usart1ClockSelection = RCC_USART1CLKSOURCE_PCLK2;
-	PeriphClkInitStruct.Usart3ClockSelection = RCC_USART3CLKSOURCE_PCLK1;
-	PeriphClkInitStruct.I2c1ClockSelection = RCC_I2C1CLKSOURCE_PCLK1;
-	PeriphClkInitStruct.Clk48ClockSelection = RCC_CLK48SOURCE_PLL;
-	if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct) != HAL_OK)
-	{
-		Error_Handler();
-	}
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_6) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_USART1|RCC_PERIPHCLK_USART3
+                              |RCC_PERIPHCLK_I2C1|RCC_PERIPHCLK_CLK48;
+  PeriphClkInitStruct.Usart1ClockSelection = RCC_USART1CLKSOURCE_PCLK2;
+  PeriphClkInitStruct.Usart3ClockSelection = RCC_USART3CLKSOURCE_PCLK1;
+  PeriphClkInitStruct.I2c1ClockSelection = RCC_I2C1CLKSOURCE_PCLK1;
+  PeriphClkInitStruct.Clk48ClockSelection = RCC_CLK48SOURCE_PLL;
+  if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct) != HAL_OK)
+  {
+    Error_Handler();
+  }
 }
 
 /* USER CODE BEGIN 4 */
@@ -938,6 +987,18 @@ uint16_t CRC16_2(uint8_t *ptr, uint8_t length){
 	}
 	return crc;
 }
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+{
+
+	//On Board
+	//Blue
+	if (GPIO_Pin == GPIO_PIN_13){
+		userResetButton = 1;
+		sprintf(str, "Interrupt pin13 \n\r");
+		HAL_UART_Transmit(&huart3, (uint8_t*) str, strlen(str),200);
+	}
+
+}
 /* USER CODE END 4 */
 
 /**
@@ -946,15 +1007,15 @@ uint16_t CRC16_2(uint8_t *ptr, uint8_t length){
   */
 void Error_Handler(void)
 {
-	/* USER CODE BEGIN Error_Handler_Debug */
+  /* USER CODE BEGIN Error_Handler_Debug */
 	/* User can add his own implementation to report the HAL error return state */
 	while (1)
 	{
 	}
-	/* USER CODE END Error_Handler_Debug */
+  /* USER CODE END Error_Handler_Debug */
 }
 
-#ifdef USE_FULL_ASSERT
+#ifdef  USE_FULL_ASSERT
 /**
   * @brief  Reports the name of the source file and the source line number
   *         where the assert_param error has occurred.
@@ -964,10 +1025,10 @@ void Error_Handler(void)
   */
 void assert_failed(uint8_t *file, uint32_t line)
 {
-	/* USER CODE BEGIN 6 */
+  /* USER CODE BEGIN 6 */
 	/* User can add his own implementation to report the file name and line number,
      tex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
-	/* USER CODE END 6 */
+  /* USER CODE END 6 */
 }
 #endif /* USE_FULL_ASSERT */
 

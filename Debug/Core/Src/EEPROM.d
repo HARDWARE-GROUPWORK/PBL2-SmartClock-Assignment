@@ -1,4 +1,4 @@
-Core/Src/main.o: ../Core/Src/main.c ../Core/Inc/main.h \
+Core/Src/EEPROM.o: ../Core/Src/EEPROM.c ../Core/Inc/EEPROM.h \
  ../Drivers/STM32F7xx_HAL_Driver/Inc/stm32f7xx_hal.h \
  ../Core/Inc/stm32f7xx_hal_conf.h \
  ../Drivers/STM32F7xx_HAL_Driver/Inc/stm32f7xx_hal_rcc.h \
@@ -31,17 +31,9 @@ Core/Src/main.o: ../Core/Src/main.c ../Core/Inc/main.h \
  ../Drivers/STM32F7xx_HAL_Driver/Inc/stm32f7xx_hal_tim.h \
  ../Drivers/STM32F7xx_HAL_Driver/Inc/stm32f7xx_hal_tim_ex.h \
  ../Drivers/STM32F7xx_HAL_Driver/Inc/stm32f7xx_hal_uart.h \
- ../Drivers/STM32F7xx_HAL_Driver/Inc/stm32f7xx_hal_uart_ex.h \
- ../Core/Inc/i2c.h ../Core/Inc/main.h ../Core/Inc/rng.h ../Core/Inc/spi.h \
- ../Core/Inc/tim.h ../Core/Inc/usart.h ../Core/Inc/gpio.h \
- C:/Users/ASUS/STM32CubeIDE/MAD_Lab_1.7.0/PBL2_SmartClock/Drivers/ILI9341/ILI9341_Touchscreen.h \
- C:/Users/ASUS/STM32CubeIDE/MAD_Lab_1.7.0/PBL2_SmartClock/Drivers/ILI9341/ILI9341_STM32_Driver.h \
- C:/Users/ASUS/STM32CubeIDE/MAD_Lab_1.7.0/PBL2_SmartClock/Drivers/ILI9341/ILI9341_GFX.h \
- C:/Users/ASUS/STM32CubeIDE/MAD_Lab_1.7.0/PBL2_SmartClock/Drivers/ILI9341/snow_tiger.h \
- C:/Users/ASUS/STM32CubeIDE/MAD_Lab_1.7.0/PBL2_SmartClock/Drivers/STM32-AM2320-master/am2320.h \
- ../Core/Inc/sps30.h ../Core/Inc/EEPROM.h
+ ../Drivers/STM32F7xx_HAL_Driver/Inc/stm32f7xx_hal_uart_ex.h
 
-../Core/Inc/main.h:
+../Core/Inc/EEPROM.h:
 
 ../Drivers/STM32F7xx_HAL_Driver/Inc/stm32f7xx_hal.h:
 
@@ -108,31 +100,3 @@ Core/Src/main.o: ../Core/Src/main.c ../Core/Inc/main.h \
 ../Drivers/STM32F7xx_HAL_Driver/Inc/stm32f7xx_hal_uart.h:
 
 ../Drivers/STM32F7xx_HAL_Driver/Inc/stm32f7xx_hal_uart_ex.h:
-
-../Core/Inc/i2c.h:
-
-../Core/Inc/main.h:
-
-../Core/Inc/rng.h:
-
-../Core/Inc/spi.h:
-
-../Core/Inc/tim.h:
-
-../Core/Inc/usart.h:
-
-../Core/Inc/gpio.h:
-
-C:/Users/ASUS/STM32CubeIDE/MAD_Lab_1.7.0/PBL2_SmartClock/Drivers/ILI9341/ILI9341_Touchscreen.h:
-
-C:/Users/ASUS/STM32CubeIDE/MAD_Lab_1.7.0/PBL2_SmartClock/Drivers/ILI9341/ILI9341_STM32_Driver.h:
-
-C:/Users/ASUS/STM32CubeIDE/MAD_Lab_1.7.0/PBL2_SmartClock/Drivers/ILI9341/ILI9341_GFX.h:
-
-C:/Users/ASUS/STM32CubeIDE/MAD_Lab_1.7.0/PBL2_SmartClock/Drivers/ILI9341/snow_tiger.h:
-
-C:/Users/ASUS/STM32CubeIDE/MAD_Lab_1.7.0/PBL2_SmartClock/Drivers/STM32-AM2320-master/am2320.h:
-
-../Core/Inc/sps30.h:
-
-../Core/Inc/EEPROM.h:
