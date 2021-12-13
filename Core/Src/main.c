@@ -129,6 +129,9 @@ bool isPressButton4 = false;
 
 bool userResetButton = false;
 
+//Pm state
+bool isPmSend = false;
+
 //Alarm State
 bool alarmIsOn = true;
 bool alarmIsAlert = false;
@@ -139,6 +142,7 @@ uint64_t prevSecondCounter = 0;
 uint64_t millisecondHAL = 0;
 
 uint64_t pmPrevMillisecondHAL = 0;
+uint64_t pmSendPrevMillisecondHAL = 0;
 uint64_t buzzerPrevMillisecondHAL = 0;
 uint64_t alarmPrevMillisecondHAL = 0;
 bool buzzerIsOn = false;
@@ -321,9 +325,9 @@ void setDayX(uint8_t num){
 }
 
 void compareAlarmClock(){ //Check If alarmIsOn and equal to alarm setting, alert!
-	char hexString[30];
-	sprintf(hexString,"%d %d %d // %d %d\r\n",hourNum,minuteNum,secondNum,alarmHour,alarmMinute);
-	HAL_UART_Transmit(&huart3, (uint8_t*) hexString, strlen(hexString), 1000);
+//	char hexString[30];
+//	sprintf(hexString,"%d %d %d // %d %d\r\n",hourNum,minuteNum,secondNum,alarmHour,alarmMinute);
+//	HAL_UART_Transmit(&huart3, (uint8_t*) hexString, strlen(hexString), 1000);
 	if(alarmIsOn == true && hourNum == alarmHour && minuteNum == alarmMinute && secondNum == 0){
 		alarmIsAlert = true;
 		char hexString[30];
@@ -781,34 +785,113 @@ void bottomBarScreenUpdate(){
 
 void notifyPm(){
 	float *respondRead;
-	respondRead = read_sensirion();
+		respondRead = read_sensirion();
 
-	if(millisecondHAL - pmPrevMillisecondHAL >= 20000 && respondRead[1] >= 0 && respondRead[1] <= 9999){
+	if(respondRead[1] >= 999){
+		respondRead[1] = 999;
+	}
+	if(respondRead[2] >= 999){
+		respondRead[2] = 999;
+	}
+	if(respondRead[3] >= 999){
+		respondRead[3] = 999;
+	}
+	if(respondRead[4] >= 999){
+		respondRead[4] = 999;
+	}
+
+	if(respondRead[1] > 0 && respondRead[1] <= 9999 &&
+		respondRead[2] > 0 && respondRead[2] <= 9999 &&
+		respondRead[3] > 0 && respondRead[3] <= 9999 &&
+		respondRead[4] > 0 && respondRead[4] <= 9999){
 
 		pmTwoPointFive = respondRead[1];
 
-		if(respondRead[1]>=250){
-			sent_string_to_mcu("HAZ");
-		}
-		else if(respondRead[1]>=150){
-			sent_string_to_mcu("VUH");
-		}
-		else if(respondRead[1]>=55){
-			sent_string_to_mcu("UHT");
-		}
-		if(respondRead[1]>=55){
-			println("Danger Air");
-			println("Sending");
-			char stringBuffer[500];
-			sprintf(stringBuffer, "EXC %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f" , respondRead[0], respondRead[1], respondRead[2], respondRead[3], respondRead[4], respondRead[5], respondRead[6], respondRead[7], respondRead[8], respondRead[9]);
-			sent_string_to_mcu(stringBuffer);
-		}
-		else{
-			println("Normal Air");
+		if(isPmSend == false){
+			if(respondRead[1]>=250){
+				sent_string_to_mcu("HAZ");
+			}
+			else if(respondRead[1]>=150){
+				sent_string_to_mcu("VUH");
+			}
+			else if(respondRead[1]>=55){
+				sent_string_to_mcu("UHT");
+			}
+			if(respondRead[1]>=55){
+				println("Danger Air");
+				println("Sending");
+				char stringBuffer[500];
+				sprintf(stringBuffer, "EXC %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f" , respondRead[0], respondRead[1], respondRead[2], respondRead[3], respondRead[4], respondRead[5], respondRead[6], respondRead[7], respondRead[8], respondRead[9]);
+				sent_string_to_mcu(stringBuffer);
+
+				isPmSend = true;
+				pmSendPrevMillisecondHAL = millisecondHAL;
+			}
+			else{
+				println("Normal Air");
+			}
 		}
 
-		pmPrevMillisecondHAL = millisecondHAL;
 	}
+
+	if(millisecondHAL - pmSendPrevMillisecondHAL >= 10000){
+		isPmSend = false;
+		pmSendPrevMillisecondHAL = millisecondHAL;
+	}
+
+//	float* respondRead;
+//
+//	println("zzz");
+//	if(millisecondHAL - pmPrevMillisecondHAL >= 1000){
+//		pmPrevMillisecondHAL = millisecondHAL;
+//
+//		println("xxxx");
+//		respondRead = read_sensirion();
+//
+//		println("aaaaaaaaa");
+//	}
+//	println("HAHAHAHA");
+//
+//	if(respondRead[1] >= 0 && respondRead[1] <= 9999 &&
+//		respondRead[2] >= 0 && respondRead[2] <= 9999 &&
+//		respondRead[3] >= 0 && respondRead[3] <= 9999 &&
+//		respondRead[4] >= 0 && respondRead[4] <= 9999
+//	  ){
+//
+//		pmTwoPointFive = respondRead[1];
+//
+//		if(isPmSend == false){
+//			if(respondRead[1]>=250){
+//				sent_string_to_mcu("HAZ");
+//			}
+//			else if(respondRead[1]>=150){
+//				sent_string_to_mcu("VUH");
+//			}
+//			else if(respondRead[1]>=55){
+//				sent_string_to_mcu("UHT");
+//			}
+//			if(respondRead[1]>=55){
+//				println("Danger Air");
+//				println("Sending");
+//				char stringBuffer[500];
+//				sprintf(stringBuffer, "EXC %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f" , respondRead[0], respondRead[1], respondRead[2], respondRead[3], respondRead[4], respondRead[5], respondRead[6], respondRead[7], respondRead[8], respondRead[9]);
+//				sent_string_to_mcu(stringBuffer);
+//
+//				isPmSend = true;
+//				pmSendPrevMillisecondHAL = millisecondHAL;
+//			}
+//			else{
+//				println("Normal Air");
+//			}
+//		}
+//	}
+//
+//	println("WTFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF");
+//
+//	if(millisecondHAL - pmSendPrevMillisecondHAL >= 10000){
+//		isPmSend = false;
+//		pmSendPrevMillisecondHAL = millisecondHAL;
+//	}
 }
 
 void resisterMonitor(){

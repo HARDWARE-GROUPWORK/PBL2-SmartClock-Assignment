@@ -62,8 +62,9 @@ uint8_t *wake_sensirion()
 	{
 	}
 	HAL_UART_Receive(&huart1, (uint8_t *)data, sizeof(data), 1000);
-	//HAL_Delay(200);
-	println("Wakeup");
+
+	//HAL_Delay(1000);
+	//println("Wakeup");
 	return data;
 }
 
@@ -86,18 +87,22 @@ float *read_sensirion()
 	while (__HAL_UART_GET_FLAG(&huart1, UART_FLAG_TC) == RESET)
 	{
 	}
-	HAL_UART_Receive(&huart1, (uint8_t *)data, sizeof(data), 100); // from 1000 to 100
+	HAL_UART_Receive(&huart1, (uint8_t *)data, sizeof(data),  200); // from 1000 to 200
+//	while (__HAL_UART_GET_FLAG(&huart3, UART_FLAG_TC) == RESET)
+//		{
+//		}
+//	HAL_UART_Transmit(&huart3, (uint8_t *)data, sizeof(data), 100);
 
 
-	println("starting");
+	//println("Try to Read");
 	// Check for start frame
 	if (data[0] == 0x7E && data[1] == 0x00)
 	{
 		// Header frame
-		uint8_t command = data[2];
-		uint8_t errorcode = data[3];
-		uint8_t length = data[4];
-		uint8_t state = data[5];
+//		uint8_t command = data[2];
+//		uint8_t errorcode = data[3];
+//		uint8_t length = data[4];
+//		uint8_t state = data[5];
 
 		uint8_t checksum;
 		// Find checksum frame by start from the back of the array
@@ -122,18 +127,18 @@ float *read_sensirion()
 			actualValue[i] = sensirion_bytes_to_float(concatenateHex[i]);
 
 			// ! For debug only
-			char stringBuffer[30];
-			sprintf(stringBuffer, "%.4f\r\n", actualValue[i]);
-			HAL_UART_Transmit(&huart3, (uint8_t *)stringBuffer, strlen(stringBuffer), 200);
-			println("Read completed");
+//			char stringBuffer[30];
+//			sprintf(stringBuffer, "%.4f\r\n", actualValue[i]);
+//			HAL_UART_Transmit(&huart3, (uint8_t *)stringBuffer, strlen(stringBuffer), 200);
+			//println("Read completed");
 		}
-		//HAL_Delay(200);
+		//HAL_Delay(1000);
 		return actualValue;
 	}
 	else
 	{
-		println("Error: Can't read sensor");
-		//HAL_Delay(200);
+		//println("Error: Can't read sensor");
+		//HAL_Delay(1000);
 		return NULL;
 	}
 }
