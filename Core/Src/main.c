@@ -66,7 +66,7 @@
 int lightPercent = 100;
 float temp = 99.9;
 float humid = 99.9;
-float pmTwoPointFive = 4.0; // ug/m^3
+float pmTwoPointFive = 40.0; // ug/m^3
 float prevTemp = -1.0;
 float prevHumid = -1.0;
 float prevPmTwoPointFive = -1.0;
@@ -131,6 +131,7 @@ bool userResetButton = false;
 
 //Alarm State
 bool alarmIsOn = true;
+bool alarmIsAlert = false;
 
 //HAL Timers
 uint64_t secondCounter = 0;
@@ -138,6 +139,10 @@ uint64_t prevSecondCounter = 0;
 uint64_t millisecondHAL = 0;
 
 uint64_t pmPrevMillisecondHAL = 0;
+uint64_t buzzerPrevMillisecondHAL = 0;
+uint64_t alarmPrevMillisecondHAL = 0;
+bool buzzerIsOn = false;
+uint8_t alarmNumOfAlert = 0;
 
 //Date Clock
 int8_t date = 13; // 1-31
@@ -164,6 +169,76 @@ uint16_t CRC16_2(uint8_t *, uint8_t);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+
+//Buzzer Sound
+void buzzerSound(uint32_t delay){
+
+	if(alarmIsAlert == false){
+		if(buzzerIsOn == true){
+	//		char hexString[30];
+	//		sprintf(hexString,"BUZZER....\r\n");
+	//		HAL_UART_Transmit(&huart3, (uint8_t*) hexString, strlen(hexString), 1000);
+
+			htim4.Instance->CCR1 = (1000 - 1) * 0.5;
+			HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_1);
+		}
+
+		if(buzzerIsOn == true && millisecondHAL - buzzerPrevMillisecondHAL >= delay){
+	//		char hexString[30];
+	//		sprintf(hexString,"QUIT BUZZER\r\n");
+	//		HAL_UART_Transmit(&huart3, (uint8_t*) hexString, strlen(hexString), 1000);
+
+			HAL_TIM_PWM_Stop(&htim4, TIM_CHANNEL_1);
+			buzzerIsOn = false;
+			buzzerPrevMillisecondHAL = millisecondHAL;
+
+		}
+	}else{
+
+		delay += 90;
+
+		if(alarmNumOfAlert >= 60){
+			alarmNumOfAlert = 0;
+			alarmIsAlert = false;
+		}
+
+		if(alarmNumOfAlert % 4 == 0){
+			delay += delay*2;
+		}
+
+		if(buzzerIsOn == false && millisecondHAL - buzzerPrevMillisecondHAL >= delay && alarmNumOfAlert < 60){
+			buzzerIsOn = true;
+			buzzerPrevMillisecondHAL = millisecondHAL;
+			alarmNumOfAlert++;
+		}
+
+
+		if(buzzerIsOn == true){
+//			char hexString[30];
+//			sprintf(hexString,"BUZZER....\r\n");
+//			HAL_UART_Transmit(&huart3, (uint8_t*) hexString, strlen(hexString), 1000);
+
+			htim4.Instance->CCR1 = (1000 - 1) * 0.5;
+			HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_1);
+
+		}
+
+
+
+		if(buzzerIsOn == true && millisecondHAL - buzzerPrevMillisecondHAL >= delay){
+//			char hexString[30];
+//			sprintf(hexString,"QUIT BUZZER\r\n");
+//			HAL_UART_Transmit(&huart3, (uint8_t*) hexString, strlen(hexString), 1000);
+
+			HAL_TIM_PWM_Stop(&htim4, TIM_CHANNEL_1);
+			buzzerIsOn = false;
+			buzzerPrevMillisecondHAL = millisecondHAL;
+
+		}
+
+	}
+
+}
 
 // Save EEPROM
 void saveData(){
@@ -246,15 +321,20 @@ void setDayX(uint8_t num){
 }
 
 void compareAlarmClock(){ //Check If alarmIsOn and equal to alarm setting, alert!
-	if(alarmIsOn == true && hourNum == alarmHour && minuteNum == alarmMinute){
-		for(uint8_t i = 0; i < 4; i++){
-			buzzerSound(40); // waiting for test
-			HAL_Delay(40);
-		}
+	char hexString[30];
+	sprintf(hexString,"%d %d %d // %d %d\r\n",hourNum,minuteNum,secondNum,alarmHour,alarmMinute);
+	HAL_UART_Transmit(&huart3, (uint8_t*) hexString, strlen(hexString), 1000);
+	if(alarmIsOn == true && hourNum == alarmHour && minuteNum == alarmMinute && secondNum == 0){
+		alarmIsAlert = true;
 		char hexString[30];
-		sprintf(hexString,"Clock Alert!\r\n");
+		sprintf(hexString,"Clock Alert! First Time\r\n");
 		HAL_UART_Transmit(&huart3, (uint8_t*) hexString, strlen(hexString), 1000);
 	}
+}
+
+void alarmClockSound(){
+
+
 }
 
 //Calculation
@@ -270,13 +350,13 @@ void calculationClock(){
 	if (millisecond >= 1000){
 		millisecond = millisecond - 1000;
 		secondNum++;
-		compareAlarmClock();
 	}
 	if (secondNum >= 60){
 		secondNum = 0;
 		if (mode != 100){
 			minuteNum++;
 		}
+		compareAlarmClock();
 	}
 	if (minuteNum >= 60){
 		minuteNum = 0;
@@ -659,9 +739,9 @@ void bottomBarScreen(){
 	ILI9341_Draw_Text(Temp_Buffer_text, maxWidth * 0 + offsetWidth, maxHeight * 0.9, BLACK, size, RED);
 	sprintf(Temp_Buffer_text, "ADJ");
 	ILI9341_Draw_Text(Temp_Buffer_text, maxWidth * 0.25 + offsetWidth, maxHeight * 0.9, BLACK, size, YELLOW);
-	sprintf(Temp_Buffer_text, "FWD");
-	ILI9341_Draw_Text(Temp_Buffer_text, maxWidth * 0.5 + offsetWidth, maxHeight * 0.9, BLACK, size, CYAN);
 	sprintf(Temp_Buffer_text, "BWD");
+	ILI9341_Draw_Text(Temp_Buffer_text, maxWidth * 0.5 + offsetWidth, maxHeight * 0.9, BLACK, size, CYAN);
+	sprintf(Temp_Buffer_text, "FWD");
 	ILI9341_Draw_Text(Temp_Buffer_text, maxWidth * 0.75 + offsetWidth, maxHeight * 0.9, BLACK, size, GREEN);
 }
 void bottomBarScreenUpdate(){
@@ -699,19 +779,14 @@ void bottomBarScreenUpdate(){
 	}
 }
 
-//Buzzer Sound
-void buzzerSound(uint32_t delay){
-	htim3.Instance->CCR1 = (1000 - 1) * 0.5;
-	HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
-	HAL_Delay(delay);
-	HAL_TIM_PWM_Stop(&htim3, TIM_CHANNEL_1);
-}
-
 void notifyPm(){
 	float *respondRead;
 	respondRead = read_sensirion();
 
 	if(millisecondHAL - pmPrevMillisecondHAL >= 20000 && respondRead[1] >= 0 && respondRead[1] <= 9999){
+
+		pmTwoPointFive = respondRead[1];
+
 		if(respondRead[1]>=250){
 			sent_string_to_mcu("HAZ");
 		}
@@ -725,7 +800,7 @@ void notifyPm(){
 			println("Danger Air");
 			println("Sending");
 			char stringBuffer[500];
-			sprintf(stringBuffer, "EXC %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f" , respondRead[0], respondRead[1], respondRead[2], respondRead[3], respondRead[4], respondRead[5], respondRead[6], respondRead[7], respondRead[8], respondRead[9], respondRead[10]);
+			sprintf(stringBuffer, "EXC %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f" , respondRead[0], respondRead[1], respondRead[2], respondRead[3], respondRead[4], respondRead[5], respondRead[6], respondRead[7], respondRead[8], respondRead[9]);
 			sent_string_to_mcu(stringBuffer);
 		}
 		else{
@@ -1090,6 +1165,7 @@ int main(void)
   MX_USART1_UART_Init();
   MX_UART4_Init();
   MX_ADC1_Init();
+  MX_TIM4_Init();
   /* USER CODE BEGIN 2 */
 
 	//Temp but not has code in here yet
@@ -1172,6 +1248,9 @@ int main(void)
 			stopWatchScreen();
 		}else if(mode == 2){
 			alarmClockScreen();
+			if(halfsecond ==1){
+				notifyPm(); // read every 500 ms
+			}
 		}else if (mode == 100){ // Adjust modeEdit 1-year, 2-month, 3-date, 4-day, 5-hour, 6-minute, 7-second
 
 			if(halfsecond == 1){ // render every 500 ms
@@ -1208,8 +1287,10 @@ int main(void)
 			(pressButton2 == true && isPressButton2 == false) ||
 			(pressButton3 == true && isPressButton3 == false) ||
 			(pressButton4 == true && isPressButton4 == false)){
-			buzzerSound(70);
+			buzzerIsOn = true;
+			buzzerPrevMillisecondHAL = millisecondHAL;
 		}
+		buzzerSound(40);
 
 		//General Mode
 		if (pressButton1 == true && isPressButton1 == false && !(mode == 100 || mode == 200)){ // increase mode only once
@@ -1218,11 +1299,13 @@ int main(void)
 				mode = 0;
 			}
 			isPressButton1 = true;
+			prevSecondCounter = millisecondHAL;
 		}
 		//StopWatch Mode
 		if (pressButton2 == true && isPressButton2 == false && mode == 1 && isStopWatchRunning != true){ //Reset StopWatch
 			isPressButton2 = true;
 			resetStopWatch();
+			prevSecondCounter = millisecondHAL;
 		}
 		if (pressButton3 == true && isPressButton3 == false && mode == 1){ //Running/Stop StopWatch
 			isPressButton3 = true;
@@ -1232,6 +1315,16 @@ int main(void)
 			}else{
 				isStopWatchRunning = false;
 			}
+			prevSecondCounter = millisecondHAL;
+		}
+		//Alarm Clock press when want to stop
+		if((pressButton1|| pressButton2 || pressButton3 || pressButton4) && alarmIsAlert == true){
+			isPressButton1 = true;
+			isPressButton2 = true;
+			isPressButton3 = true;
+			isPressButton4 = true;
+			prevSecondCounter = millisecondHAL;
+			alarmIsAlert = false;
 		}
 
 		//Adjust Time Mode For Mode 0 and 100
@@ -1240,7 +1333,10 @@ int main(void)
 			prevSecondCounter = millisecondHAL;
 		}
 		else if (pressButton2 == true && isPressButton2 == true && mode == 0 && millisecondHAL - prevSecondCounter >= 3000){ // hold for 3 seconds
-			buzzerSound(70);
+			buzzerIsOn = true;
+			buzzerPrevMillisecondHAL = millisecondHAL;
+			buzzerSound(50);
+
 			modeEdit = 1; // Reset to Year First time
 			mode = 100;
 			prevSecondCounter = millisecondHAL;
@@ -1261,6 +1357,7 @@ int main(void)
 				modeEdit = 1; // Reset to Year
 				mode = 0;	  // Back to General Mode
 			}
+			prevSecondCounter = millisecondHAL;
 		}
 		//Forward
 		if (pressButton3 == true && isPressButton3 == false && mode == 100){ // increase value
@@ -1282,6 +1379,7 @@ int main(void)
 			halfsecondState = false;
 			resetPrevNum();
 			isPressButton3 = true;
+			prevSecondCounter = millisecondHAL;
 		}
 		//Backward
 		if (pressButton4 == true && isPressButton4 == false && mode == 100){ // decrease value
@@ -1303,6 +1401,7 @@ int main(void)
 			halfsecondState = false;
 			resetPrevNum();
 			isPressButton4 = true;
+			prevSecondCounter = millisecondHAL;
 		}
 
 
@@ -1315,7 +1414,10 @@ int main(void)
 			prevSecondCounter = millisecondHAL;
 		}
 		else if (pressButton2 == true && isPressButton2 == true && mode == 2 && millisecondHAL - prevSecondCounter >= 3000){ // hold for 3 seconds
-			buzzerSound(70);
+			buzzerIsOn = true;
+			buzzerPrevMillisecondHAL = millisecondHAL;
+			buzzerSound(50);
+
 			modeEdit = 1; // Reset to Hour First time
 			mode = 200;
 			alarmIsOn = true; // always on when editing this alarm
@@ -1337,6 +1439,7 @@ int main(void)
 				modeEdit = 1; // Reset to Hour
 				mode = 2;	  // Back to Alarm Mode
 			}
+			prevSecondCounter = millisecondHAL;
 		}
 		//Forward
 		if (pressButton3 == true && isPressButton3 == false && mode == 200){ // increase value
@@ -1348,6 +1451,7 @@ int main(void)
 			halfsecondState = false;
 			resetPrevAlarm();
 			isPressButton3 = true;
+			prevSecondCounter = millisecondHAL;
 		}
 		//Backward
 		if (pressButton4 == true && isPressButton4 == false && mode == 200){ // decrease value
@@ -1359,21 +1463,25 @@ int main(void)
 			halfsecondState = false;
 			resetPrevAlarm();
 			isPressButton4 = true;
+			prevSecondCounter = millisecondHAL;
 		}
 
 
-		//Reset isPressButton
-		if (pressButton1 == false){
-			isPressButton1 = false;
-		}
-		if (pressButton2 == false){
-			isPressButton2 = false;
-		}
-		if (pressButton3 == false){
-			isPressButton3 = false;
-		}
-		if (pressButton4 == false){
-			isPressButton4 = false;
+
+		if(millisecondHAL - prevSecondCounter >= 150){
+			//Reset isPressButton
+			if (pressButton1 == false){
+				isPressButton1 = false;
+			}
+			if (pressButton2 == false){
+				isPressButton2 = false;
+			}
+			if (pressButton3 == false){
+				isPressButton3 = false;
+			}
+			if (pressButton4 == false){
+				isPressButton4 = false;
+			}
 		}
 	}
   /* USER CODE END 3 */

@@ -62,7 +62,8 @@ uint8_t *wake_sensirion()
 	{
 	}
 	HAL_UART_Receive(&huart1, (uint8_t *)data, sizeof(data), 1000);
-	//HAL_Delay(1000);
+	//HAL_Delay(200);
+	println("Wakeup");
 	return data;
 }
 
@@ -87,6 +88,8 @@ float *read_sensirion()
 	}
 	HAL_UART_Receive(&huart1, (uint8_t *)data, sizeof(data), 100); // from 1000 to 100
 
+
+	println("starting");
 	// Check for start frame
 	if (data[0] == 0x7E && data[1] == 0x00)
 	{
@@ -122,13 +125,15 @@ float *read_sensirion()
 			char stringBuffer[30];
 			sprintf(stringBuffer, "%.4f\r\n", actualValue[i]);
 			HAL_UART_Transmit(&huart3, (uint8_t *)stringBuffer, strlen(stringBuffer), 200);
+			println("Read completed");
 		}
-		//HAL_Delay(1000);
+		//HAL_Delay(200);
 		return actualValue;
 	}
 	else
 	{
-		//HAL_Delay(1000);
+		println("Error: Can't read sensor");
+		//HAL_Delay(200);
 		return NULL;
 	}
 }
