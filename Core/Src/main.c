@@ -251,6 +251,9 @@ void compareAlarmClock(){ //Check If alarmIsOn and equal to alarm setting, alert
 			buzzerSound(40); // waiting for test
 			HAL_Delay(40);
 		}
+		char hexString[30];
+		sprintf(hexString,"Clock Alert!\r\n");
+		HAL_UART_Transmit(&huart3, (uint8_t*) hexString, strlen(hexString), 1000);
 	}
 }
 
@@ -259,9 +262,13 @@ void calculationClock(){
 
 	millisecondHAL = HAL_GetTick();
 
+//	char hexString[30];
+//	sprintf(hexString,"%d\r\n", millisecond);
+//	HAL_UART_Transmit(&huart3, (uint8_t*) hexString, strlen(hexString), 1000);
+
 	//Normal Clock
 	if (millisecond >= 1000){
-		millisecond = 0;
+		millisecond = millisecond - 1000;
 		secondNum++;
 		compareAlarmClock();
 	}
@@ -355,19 +362,6 @@ void calculationClock(){
 
 	saveData();
 }
-
-//void displayClock(uint32_t ms){
-//
-//	char hexString[30];
-//	if(halfsecondState == false){ // colon behaviour
-//		sprintf(hexString,"%02d:%02d\r", hourNum, minuteNum);
-//		HAL_UART_Transmit(&huart3, (uint8_t*) hexString, strlen(hexString), 1000);
-//	}else{
-//		sprintf(hexString,"%02d %02d\r", hourNum, minuteNum);
-//		HAL_UART_Transmit(&huart3, (uint8_t*) hexString, strlen(hexString), 1000);
-//	}
-//}
-
 
 //Date Clock Atomic
 void dayScreen(bool status, bool isEdit){
@@ -1021,9 +1015,9 @@ void tempMonitor(){
 	cmdBuffer[2] = 0x04;
 
 	//Send Temp & Humid via UART3
-	sprintf(str, "Temperature = %4.1f\tHumidity = %4.1f\n\r", temp, humid);
-	while(__HAL_UART_GET_FLAG(&huart3,UART_FLAG_TC)==RESET){}
-	HAL_UART_Transmit(&huart3, (uint8_t*) str, strlen(str),200);
+//	sprintf(str, "Temperature = %4.1f\tHumidity = %4.1f\n\r", temp, humid);
+//	while(__HAL_UART_GET_FLAG(&huart3,UART_FLAG_TC)==RESET){}
+//	HAL_UART_Transmit(&huart3, (uint8_t*) str, strlen(str),200);
 
 	//HAL_Delay(5000); //>3000 ms
 	//HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_0);
