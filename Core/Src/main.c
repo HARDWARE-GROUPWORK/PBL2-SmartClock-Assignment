@@ -787,23 +787,23 @@ void notifyPm(){
 	float *respondRead;
 		respondRead = read_sensirion();
 
-	if(respondRead[1] >= 999){
-		respondRead[1] = 999;
-	}
-	if(respondRead[2] >= 999){
-		respondRead[2] = 999;
-	}
-	if(respondRead[3] >= 999){
-		respondRead[3] = 999;
-	}
-	if(respondRead[4] >= 999){
-		respondRead[4] = 999;
-	}
-
 	if(respondRead[1] > 0 && respondRead[1] <= 9999 &&
 		respondRead[2] > 0 && respondRead[2] <= 9999 &&
 		respondRead[3] > 0 && respondRead[3] <= 9999 &&
 		respondRead[4] > 0 && respondRead[4] <= 9999){
+
+		if(respondRead[1] >= 999){
+			respondRead[1] = 999;
+		}
+		if(respondRead[2] >= 999){
+			respondRead[2] = 999;
+		}
+		if(respondRead[3] >= 999){
+			respondRead[3] = 999;
+		}
+		if(respondRead[4] >= 999){
+			respondRead[4] = 999;
+		}
 
 		pmTwoPointFive = respondRead[1];
 

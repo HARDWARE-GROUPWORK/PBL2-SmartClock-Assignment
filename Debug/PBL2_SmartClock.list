@@ -5832,125 +5832,125 @@ void notifyPm(){
  8003064:	f7fd ff80 	bl	8000f68 <read_sensirion>
  8003068:	f8c7 01f4 	str.w	r0, [r7, #500]	; 0x1f4
 
-	if(respondRead[1] >= 999){
+	if(respondRead[1] > 0 && respondRead[1] <= 9999 &&
  800306c:	f8d7 31f4 	ldr.w	r3, [r7, #500]	; 0x1f4
  8003070:	3304      	adds	r3, #4
  8003072:	edd3 7a00 	vldr	s15, [r3]
- 8003076:	ed9f 7abe 	vldr	s14, [pc, #760]	; 8003370 <notifyPm+0x318>
- 800307a:	eef4 7ac7 	vcmpe.f32	s15, s14
- 800307e:	eef1 fa10 	vmrs	APSR_nzcv, fpscr
- 8003082:	db04      	blt.n	800308e <notifyPm+0x36>
-		respondRead[1] = 999;
- 8003084:	f8d7 31f4 	ldr.w	r3, [r7, #500]	; 0x1f4
- 8003088:	3304      	adds	r3, #4
- 800308a:	4aba      	ldr	r2, [pc, #744]	; (8003374 <notifyPm+0x31c>)
- 800308c:	601a      	str	r2, [r3, #0]
-	}
-	if(respondRead[2] >= 999){
- 800308e:	f8d7 31f4 	ldr.w	r3, [r7, #500]	; 0x1f4
- 8003092:	3308      	adds	r3, #8
- 8003094:	edd3 7a00 	vldr	s15, [r3]
- 8003098:	ed9f 7ab5 	vldr	s14, [pc, #724]	; 8003370 <notifyPm+0x318>
- 800309c:	eef4 7ac7 	vcmpe.f32	s15, s14
- 80030a0:	eef1 fa10 	vmrs	APSR_nzcv, fpscr
- 80030a4:	db04      	blt.n	80030b0 <notifyPm+0x58>
-		respondRead[2] = 999;
- 80030a6:	f8d7 31f4 	ldr.w	r3, [r7, #500]	; 0x1f4
- 80030aa:	3308      	adds	r3, #8
- 80030ac:	4ab1      	ldr	r2, [pc, #708]	; (8003374 <notifyPm+0x31c>)
- 80030ae:	601a      	str	r2, [r3, #0]
-	}
-	if(respondRead[3] >= 999){
- 80030b0:	f8d7 31f4 	ldr.w	r3, [r7, #500]	; 0x1f4
- 80030b4:	330c      	adds	r3, #12
- 80030b6:	edd3 7a00 	vldr	s15, [r3]
- 80030ba:	ed9f 7aad 	vldr	s14, [pc, #692]	; 8003370 <notifyPm+0x318>
- 80030be:	eef4 7ac7 	vcmpe.f32	s15, s14
- 80030c2:	eef1 fa10 	vmrs	APSR_nzcv, fpscr
- 80030c6:	db04      	blt.n	80030d2 <notifyPm+0x7a>
-		respondRead[3] = 999;
- 80030c8:	f8d7 31f4 	ldr.w	r3, [r7, #500]	; 0x1f4
- 80030cc:	330c      	adds	r3, #12
- 80030ce:	4aa9      	ldr	r2, [pc, #676]	; (8003374 <notifyPm+0x31c>)
- 80030d0:	601a      	str	r2, [r3, #0]
-	}
-	if(respondRead[4] >= 999){
- 80030d2:	f8d7 31f4 	ldr.w	r3, [r7, #500]	; 0x1f4
- 80030d6:	3310      	adds	r3, #16
- 80030d8:	edd3 7a00 	vldr	s15, [r3]
- 80030dc:	ed9f 7aa4 	vldr	s14, [pc, #656]	; 8003370 <notifyPm+0x318>
- 80030e0:	eef4 7ac7 	vcmpe.f32	s15, s14
- 80030e4:	eef1 fa10 	vmrs	APSR_nzcv, fpscr
- 80030e8:	db04      	blt.n	80030f4 <notifyPm+0x9c>
-		respondRead[4] = 999;
- 80030ea:	f8d7 31f4 	ldr.w	r3, [r7, #500]	; 0x1f4
- 80030ee:	3310      	adds	r3, #16
- 80030f0:	4aa0      	ldr	r2, [pc, #640]	; (8003374 <notifyPm+0x31c>)
- 80030f2:	601a      	str	r2, [r3, #0]
-	}
+ 8003076:	eef5 7ac0 	vcmpe.f32	s15, #0.0
+ 800307a:	eef1 fa10 	vmrs	APSR_nzcv, fpscr
+ 800307e:	f340 8155 	ble.w	800332c <notifyPm+0x2d4>
+ 8003082:	f8d7 31f4 	ldr.w	r3, [r7, #500]	; 0x1f4
+ 8003086:	3304      	adds	r3, #4
+ 8003088:	edd3 7a00 	vldr	s15, [r3]
+ 800308c:	ed9f 7ab8 	vldr	s14, [pc, #736]	; 8003370 <notifyPm+0x318>
+ 8003090:	eef4 7ac7 	vcmpe.f32	s15, s14
+ 8003094:	eef1 fa10 	vmrs	APSR_nzcv, fpscr
+ 8003098:	f200 8148 	bhi.w	800332c <notifyPm+0x2d4>
+		respondRead[2] > 0 && respondRead[2] <= 9999 &&
+ 800309c:	f8d7 31f4 	ldr.w	r3, [r7, #500]	; 0x1f4
+ 80030a0:	3308      	adds	r3, #8
+ 80030a2:	edd3 7a00 	vldr	s15, [r3]
+	if(respondRead[1] > 0 && respondRead[1] <= 9999 &&
+ 80030a6:	eef5 7ac0 	vcmpe.f32	s15, #0.0
+ 80030aa:	eef1 fa10 	vmrs	APSR_nzcv, fpscr
+ 80030ae:	f340 813d 	ble.w	800332c <notifyPm+0x2d4>
+		respondRead[2] > 0 && respondRead[2] <= 9999 &&
+ 80030b2:	f8d7 31f4 	ldr.w	r3, [r7, #500]	; 0x1f4
+ 80030b6:	3308      	adds	r3, #8
+ 80030b8:	edd3 7a00 	vldr	s15, [r3]
+ 80030bc:	ed9f 7aac 	vldr	s14, [pc, #688]	; 8003370 <notifyPm+0x318>
+ 80030c0:	eef4 7ac7 	vcmpe.f32	s15, s14
+ 80030c4:	eef1 fa10 	vmrs	APSR_nzcv, fpscr
+ 80030c8:	f200 8130 	bhi.w	800332c <notifyPm+0x2d4>
+		respondRead[3] > 0 && respondRead[3] <= 9999 &&
+ 80030cc:	f8d7 31f4 	ldr.w	r3, [r7, #500]	; 0x1f4
+ 80030d0:	330c      	adds	r3, #12
+ 80030d2:	edd3 7a00 	vldr	s15, [r3]
+		respondRead[2] > 0 && respondRead[2] <= 9999 &&
+ 80030d6:	eef5 7ac0 	vcmpe.f32	s15, #0.0
+ 80030da:	eef1 fa10 	vmrs	APSR_nzcv, fpscr
+ 80030de:	f340 8125 	ble.w	800332c <notifyPm+0x2d4>
+		respondRead[3] > 0 && respondRead[3] <= 9999 &&
+ 80030e2:	f8d7 31f4 	ldr.w	r3, [r7, #500]	; 0x1f4
+ 80030e6:	330c      	adds	r3, #12
+ 80030e8:	edd3 7a00 	vldr	s15, [r3]
+ 80030ec:	ed9f 7aa0 	vldr	s14, [pc, #640]	; 8003370 <notifyPm+0x318>
+ 80030f0:	eef4 7ac7 	vcmpe.f32	s15, s14
+ 80030f4:	eef1 fa10 	vmrs	APSR_nzcv, fpscr
+ 80030f8:	f200 8118 	bhi.w	800332c <notifyPm+0x2d4>
+		respondRead[4] > 0 && respondRead[4] <= 9999){
+ 80030fc:	f8d7 31f4 	ldr.w	r3, [r7, #500]	; 0x1f4
+ 8003100:	3310      	adds	r3, #16
+ 8003102:	edd3 7a00 	vldr	s15, [r3]
+		respondRead[3] > 0 && respondRead[3] <= 9999 &&
+ 8003106:	eef5 7ac0 	vcmpe.f32	s15, #0.0
+ 800310a:	eef1 fa10 	vmrs	APSR_nzcv, fpscr
+ 800310e:	f340 810d 	ble.w	800332c <notifyPm+0x2d4>
+		respondRead[4] > 0 && respondRead[4] <= 9999){
+ 8003112:	f8d7 31f4 	ldr.w	r3, [r7, #500]	; 0x1f4
+ 8003116:	3310      	adds	r3, #16
+ 8003118:	edd3 7a00 	vldr	s15, [r3]
+ 800311c:	ed9f 7a94 	vldr	s14, [pc, #592]	; 8003370 <notifyPm+0x318>
+ 8003120:	eef4 7ac7 	vcmpe.f32	s15, s14
+ 8003124:	eef1 fa10 	vmrs	APSR_nzcv, fpscr
+ 8003128:	f200 8100 	bhi.w	800332c <notifyPm+0x2d4>
 
-	if(respondRead[1] > 0 && respondRead[1] <= 9999 &&
- 80030f4:	f8d7 31f4 	ldr.w	r3, [r7, #500]	; 0x1f4
- 80030f8:	3304      	adds	r3, #4
- 80030fa:	edd3 7a00 	vldr	s15, [r3]
- 80030fe:	eef5 7ac0 	vcmpe.f32	s15, #0.0
- 8003102:	eef1 fa10 	vmrs	APSR_nzcv, fpscr
- 8003106:	f340 8111 	ble.w	800332c <notifyPm+0x2d4>
- 800310a:	f8d7 31f4 	ldr.w	r3, [r7, #500]	; 0x1f4
- 800310e:	3304      	adds	r3, #4
- 8003110:	edd3 7a00 	vldr	s15, [r3]
- 8003114:	ed9f 7a98 	vldr	s14, [pc, #608]	; 8003378 <notifyPm+0x320>
- 8003118:	eef4 7ac7 	vcmpe.f32	s15, s14
- 800311c:	eef1 fa10 	vmrs	APSR_nzcv, fpscr
- 8003120:	f200 8104 	bhi.w	800332c <notifyPm+0x2d4>
-		respondRead[2] > 0 && respondRead[2] <= 9999 &&
- 8003124:	f8d7 31f4 	ldr.w	r3, [r7, #500]	; 0x1f4
- 8003128:	3308      	adds	r3, #8
- 800312a:	edd3 7a00 	vldr	s15, [r3]
-	if(respondRead[1] > 0 && respondRead[1] <= 9999 &&
- 800312e:	eef5 7ac0 	vcmpe.f32	s15, #0.0
- 8003132:	eef1 fa10 	vmrs	APSR_nzcv, fpscr
- 8003136:	f340 80f9 	ble.w	800332c <notifyPm+0x2d4>
-		respondRead[2] > 0 && respondRead[2] <= 9999 &&
- 800313a:	f8d7 31f4 	ldr.w	r3, [r7, #500]	; 0x1f4
- 800313e:	3308      	adds	r3, #8
- 8003140:	edd3 7a00 	vldr	s15, [r3]
- 8003144:	ed9f 7a8c 	vldr	s14, [pc, #560]	; 8003378 <notifyPm+0x320>
- 8003148:	eef4 7ac7 	vcmpe.f32	s15, s14
- 800314c:	eef1 fa10 	vmrs	APSR_nzcv, fpscr
- 8003150:	f200 80ec 	bhi.w	800332c <notifyPm+0x2d4>
-		respondRead[3] > 0 && respondRead[3] <= 9999 &&
- 8003154:	f8d7 31f4 	ldr.w	r3, [r7, #500]	; 0x1f4
- 8003158:	330c      	adds	r3, #12
- 800315a:	edd3 7a00 	vldr	s15, [r3]
-		respondRead[2] > 0 && respondRead[2] <= 9999 &&
- 800315e:	eef5 7ac0 	vcmpe.f32	s15, #0.0
- 8003162:	eef1 fa10 	vmrs	APSR_nzcv, fpscr
- 8003166:	f340 80e1 	ble.w	800332c <notifyPm+0x2d4>
-		respondRead[3] > 0 && respondRead[3] <= 9999 &&
- 800316a:	f8d7 31f4 	ldr.w	r3, [r7, #500]	; 0x1f4
- 800316e:	330c      	adds	r3, #12
- 8003170:	edd3 7a00 	vldr	s15, [r3]
- 8003174:	ed9f 7a80 	vldr	s14, [pc, #512]	; 8003378 <notifyPm+0x320>
- 8003178:	eef4 7ac7 	vcmpe.f32	s15, s14
- 800317c:	eef1 fa10 	vmrs	APSR_nzcv, fpscr
- 8003180:	f200 80d4 	bhi.w	800332c <notifyPm+0x2d4>
-		respondRead[4] > 0 && respondRead[4] <= 9999){
- 8003184:	f8d7 31f4 	ldr.w	r3, [r7, #500]	; 0x1f4
- 8003188:	3310      	adds	r3, #16
- 800318a:	edd3 7a00 	vldr	s15, [r3]
-		respondRead[3] > 0 && respondRead[3] <= 9999 &&
- 800318e:	eef5 7ac0 	vcmpe.f32	s15, #0.0
- 8003192:	eef1 fa10 	vmrs	APSR_nzcv, fpscr
- 8003196:	f340 80c9 	ble.w	800332c <notifyPm+0x2d4>
-		respondRead[4] > 0 && respondRead[4] <= 9999){
- 800319a:	f8d7 31f4 	ldr.w	r3, [r7, #500]	; 0x1f4
- 800319e:	3310      	adds	r3, #16
- 80031a0:	edd3 7a00 	vldr	s15, [r3]
- 80031a4:	ed9f 7a74 	vldr	s14, [pc, #464]	; 8003378 <notifyPm+0x320>
- 80031a8:	eef4 7ac7 	vcmpe.f32	s15, s14
- 80031ac:	eef1 fa10 	vmrs	APSR_nzcv, fpscr
- 80031b0:	f200 80bc 	bhi.w	800332c <notifyPm+0x2d4>
+		if(respondRead[1] >= 999){
+ 800312c:	f8d7 31f4 	ldr.w	r3, [r7, #500]	; 0x1f4
+ 8003130:	3304      	adds	r3, #4
+ 8003132:	edd3 7a00 	vldr	s15, [r3]
+ 8003136:	ed9f 7a8f 	vldr	s14, [pc, #572]	; 8003374 <notifyPm+0x31c>
+ 800313a:	eef4 7ac7 	vcmpe.f32	s15, s14
+ 800313e:	eef1 fa10 	vmrs	APSR_nzcv, fpscr
+ 8003142:	db04      	blt.n	800314e <notifyPm+0xf6>
+			respondRead[1] = 999;
+ 8003144:	f8d7 31f4 	ldr.w	r3, [r7, #500]	; 0x1f4
+ 8003148:	3304      	adds	r3, #4
+ 800314a:	4a8b      	ldr	r2, [pc, #556]	; (8003378 <notifyPm+0x320>)
+ 800314c:	601a      	str	r2, [r3, #0]
+		}
+		if(respondRead[2] >= 999){
+ 800314e:	f8d7 31f4 	ldr.w	r3, [r7, #500]	; 0x1f4
+ 8003152:	3308      	adds	r3, #8
+ 8003154:	edd3 7a00 	vldr	s15, [r3]
+ 8003158:	ed9f 7a86 	vldr	s14, [pc, #536]	; 8003374 <notifyPm+0x31c>
+ 800315c:	eef4 7ac7 	vcmpe.f32	s15, s14
+ 8003160:	eef1 fa10 	vmrs	APSR_nzcv, fpscr
+ 8003164:	db04      	blt.n	8003170 <notifyPm+0x118>
+			respondRead[2] = 999;
+ 8003166:	f8d7 31f4 	ldr.w	r3, [r7, #500]	; 0x1f4
+ 800316a:	3308      	adds	r3, #8
+ 800316c:	4a82      	ldr	r2, [pc, #520]	; (8003378 <notifyPm+0x320>)
+ 800316e:	601a      	str	r2, [r3, #0]
+		}
+		if(respondRead[3] >= 999){
+ 8003170:	f8d7 31f4 	ldr.w	r3, [r7, #500]	; 0x1f4
+ 8003174:	330c      	adds	r3, #12
+ 8003176:	edd3 7a00 	vldr	s15, [r3]
+ 800317a:	ed9f 7a7e 	vldr	s14, [pc, #504]	; 8003374 <notifyPm+0x31c>
+ 800317e:	eef4 7ac7 	vcmpe.f32	s15, s14
+ 8003182:	eef1 fa10 	vmrs	APSR_nzcv, fpscr
+ 8003186:	db04      	blt.n	8003192 <notifyPm+0x13a>
+			respondRead[3] = 999;
+ 8003188:	f8d7 31f4 	ldr.w	r3, [r7, #500]	; 0x1f4
+ 800318c:	330c      	adds	r3, #12
+ 800318e:	4a7a      	ldr	r2, [pc, #488]	; (8003378 <notifyPm+0x320>)
+ 8003190:	601a      	str	r2, [r3, #0]
+		}
+		if(respondRead[4] >= 999){
+ 8003192:	f8d7 31f4 	ldr.w	r3, [r7, #500]	; 0x1f4
+ 8003196:	3310      	adds	r3, #16
+ 8003198:	edd3 7a00 	vldr	s15, [r3]
+ 800319c:	ed9f 7a75 	vldr	s14, [pc, #468]	; 8003374 <notifyPm+0x31c>
+ 80031a0:	eef4 7ac7 	vcmpe.f32	s15, s14
+ 80031a4:	eef1 fa10 	vmrs	APSR_nzcv, fpscr
+ 80031a8:	db04      	blt.n	80031b4 <notifyPm+0x15c>
+			respondRead[4] = 999;
+ 80031aa:	f8d7 31f4 	ldr.w	r3, [r7, #500]	; 0x1f4
+ 80031ae:	3310      	adds	r3, #16
+ 80031b0:	4a71      	ldr	r2, [pc, #452]	; (8003378 <notifyPm+0x320>)
+ 80031b2:	601a      	str	r2, [r3, #0]
+		}
 
 		pmTwoPointFive = respondRead[1];
  80031b4:	f8d7 31f4 	ldr.w	r3, [r7, #500]	; 0x1f4
@@ -6130,9 +6130,9 @@ void notifyPm(){
  8003368:	ecbd 8b04 	vpop	{d8-d9}
  800336c:	bdb0      	pop	{r4, r5, r7, pc}
  800336e:	bf00      	nop
- 8003370:	4479c000 	.word	0x4479c000
+ 8003370:	461c3c00 	.word	0x461c3c00
  8003374:	4479c000 	.word	0x4479c000
- 8003378:	461c3c00 	.word	0x461c3c00
+ 8003378:	4479c000 	.word	0x4479c000
  800337c:	20000020 	.word	0x20000020
  8003380:	200002ef 	.word	0x200002ef
  8003384:	437a0000 	.word	0x437a0000
